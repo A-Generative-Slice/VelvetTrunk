@@ -108,8 +108,11 @@ export function saveLocalBookings(bookings: VendorBooking[]): void {
   }
 }
 
+export const HARDCODED_SUPABASE_URL = 'https://svuqgpwpmxpxpdrrtmwa.supabase.co';
+export const HARDCODED_SUPABASE_ANON_KEY = 'sb_publishable_yc0qf8TYsQbvkPArH3piMw_U3k2Z1OA';
+
 // Supabase helper
-export function getSupabaseConfig(): SupabaseConfig | null {
+export function getSupabaseConfig(): SupabaseConfig {
   try {
     const raw = localStorage.getItem(SUPABASE_CONFIG_KEY);
     if (raw) {
@@ -119,7 +122,11 @@ export function getSupabaseConfig(): SupabaseConfig | null {
   } catch (err) {
     console.error('Error reading Supabase config:', err);
   }
-  return null;
+
+  return {
+    url: HARDCODED_SUPABASE_URL,
+    anonKey: HARDCODED_SUPABASE_ANON_KEY,
+  };
 }
 
 export function saveSupabaseConfig(cfg: SupabaseConfig): void {
@@ -132,7 +139,7 @@ export function clearSupabaseConfig(): void {
 
 export function getSupabaseClient(): SupabaseClient | null {
   const cfg = getSupabaseConfig();
-  if (cfg && cfg.url && cfg.anonKey) {
+  if (cfg.url && cfg.anonKey) {
     try {
       return createClient(cfg.url, cfg.anonKey);
     } catch (err) {
