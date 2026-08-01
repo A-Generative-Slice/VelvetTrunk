@@ -28,8 +28,15 @@ export const Navigation: React.FC<NavigationProps> = ({
             onClick={() => onSelectTab('home')}
             className="flex items-center gap-3 text-left focus:outline-hidden group"
           >
-            <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-[#491546] to-[#632c5e] text-white flex items-center justify-center shadow-md group-hover:scale-105 transition-transform">
-              <Store className="w-6 h-6 text-[#f7b0eb]" />
+            <div className="w-11 h-11 rounded-2xl bg-[#ffffff] border border-[#e9e0e4] p-1 flex items-center justify-center shadow-md group-hover:scale-105 transition-transform overflow-hidden">
+              <img
+                src="/agenerativeslicelogo.jpg"
+                alt="A Generative Slice Logo"
+                className="w-full h-full object-contain rounded-xl"
+                onError={(e) => {
+                  (e.target as HTMLElement).style.display = 'none';
+                }}
+              />
             </div>
             <div>
               <div className="flex items-center gap-1.5">
