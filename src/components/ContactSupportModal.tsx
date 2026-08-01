@@ -57,7 +57,7 @@ export const ContactSupportModal: React.FC<ContactSupportModalProps> = ({
             {/* Company Logo Badge */}
             <div className="w-12 h-12 rounded-2xl bg-white p-1 shadow-md shrink-0 border border-white/30 overflow-hidden flex items-center justify-center">
               <img
-                src="/agenerativeslicelogo.jpg"
+                src="agenerativeslicelogo.jpg"
                 alt="A Generative Slice Logo"
                 className="w-full h-full object-contain rounded-xl"
                 onError={(e) => {

@@ -26,10 +26,15 @@ export const HomeView: React.FC<HomeViewProps> = ({
       <div className="bg-gradient-to-r from-[#491546] via-[#632c5e] to-[#904277] rounded-3xl p-6 text-white shadow-lg shadow-[#491546]/10 relative overflow-hidden flex flex-col sm:flex-row items-center gap-5 text-center sm:text-left">
         <div className="absolute right-0 top-0 bottom-0 w-1/3 bg-white/5 skew-x-12 pointer-events-none"></div>
 
-        <div className="w-20 h-20 rounded-2xl bg-[#fff7fa] p-1.5 shadow-md shrink-0 flex items-center justify-center">
-          <div className="w-full h-full bg-gradient-to-br from-[#faf1f5] to-[#f4ecef] rounded-xl flex flex-col items-center justify-center text-[#491546]">
-            <Store className="w-9 h-9 stroke-[2.2]" />
-          </div>
+        <div className="w-20 h-20 rounded-2xl bg-[#ffffff] p-1.5 shadow-lg border border-white/20 shrink-0 flex items-center justify-center overflow-hidden">
+          <img
+            src="agenerativeslicelogo.jpg"
+            alt="A Generative Slice Logo"
+            className="w-full h-full object-contain rounded-xl"
+            onError={(e) => {
+              (e.target as HTMLElement).style.display = 'none';
+            }}
+          />
         </div>
 
         <div className="z-10">
