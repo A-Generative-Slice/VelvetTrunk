@@ -38,7 +38,7 @@ export default function App() {
   const [isSupportModalOpen, setIsSupportModalOpen] = useState(false);
   const [isSupabaseConnected, setIsSupabaseConnected] = useState(false);
 
-  // Initial Load from local persistence
+  // Initial Load from local persistence + Supabase Realtime WebSocket Subscription
   useEffect(() => {
     const localEvts = getLocalEvents();
     const localBks = getLocalBookings();
@@ -46,19 +46,40 @@ export default function App() {
     setEvents(localEvts);
     setBookings(localBks);
 
-    // Check if Supabase config exists
     const cfg = getSupabaseConfig();
     if (cfg) {
       setIsSupabaseConnected(true);
-      syncWithSupabase(localEvts, localBks);
+      syncWithSupabase();
+    }
+
+    const client = getSupabaseClient();
+    if (client) {
+      const channel = client
+        .channel('velvet_db_realtime_changes')
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'events' },
+          () => {
+            syncWithSupabase();
+          }
+        )
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'stall_bookings' },
+          () => {
+            syncWithSupabase();
+          }
+        )
+        .subscribe();
+
+      return () => {
+        client.removeChannel(channel);
+      };
     }
   }, []);
 
-  // Sync function with Supabase
-  const syncWithSupabase = async (
-    currentEvts: EventItem[],
-    currentBks: VendorBooking[]
-  ) => {
+  // Sync function with Supabase (Mirrors exact database state, including deletions)
+  const syncWithSupabase = async () => {
     const client = getSupabaseClient();
     if (!client) {
       setIsSupabaseConnected(false);
@@ -71,8 +92,7 @@ export default function App() {
         .from('events')
         .select('*');
 
-      if (!evtErr && remoteEvents && remoteEvents.length > 0) {
-        // Map Supabase column names to EventItem
+      if (!evtErr && Array.isArray(remoteEvents)) {
         const mappedRemoteEvts: EventItem[] = remoteEvents.map((r: any) => ({
           id: r.id,
           name: r.name,
@@ -99,7 +119,7 @@ export default function App() {
         .from('stall_bookings')
         .select('*');
 
-      if (!bkErr && remoteBookings && remoteBookings.length > 0) {
+      if (!bkErr && Array.isArray(remoteBookings)) {
         const mappedRemoteBks: VendorBooking[] = remoteBookings.map((r: any) => ({
           id: r.id,
           eventId: r.event_id,
@@ -489,7 +509,7 @@ export default function App() {
       <SupabaseModal
         isOpen={isSupabaseModalOpen}
         onClose={() => setIsSupabaseModalOpen(false)}
-        onSync={() => syncWithSupabase(events, bookings)}
+        onSync={() => syncWithSupabase()}
         onExportData={handleExportData}
         onImportData={handleImportData}
       />

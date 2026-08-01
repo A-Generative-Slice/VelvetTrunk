@@ -249,4 +249,8 @@ alter table public.stall_bookings enable row level security;
 
 create policy "Allow anonymous access on events" on public.events for all using (true) with check (true);
 create policy "Allow anonymous access on stall_bookings" on public.stall_bookings for all using (true) with check (true);
+
+-- Enable Realtime WebSockets for instant multi-device create/delete sync
+alter publication supabase_realtime add table public.events;
+alter publication supabase_realtime add table public.stall_bookings;
 `;
