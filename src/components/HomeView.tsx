@@ -1,6 +1,6 @@
 import React from 'react';
 import { EventItem, VendorBooking } from '../types';
-import { calculateEventDashboardStats } from '../lib/storage';
+import { calculateEventDashboardStats, formatDateRange } from '../lib/storage';
 import { Plus, Archive, Calendar, MapPin, Store, Sparkles, ChevronRight } from 'lucide-react';
 
 interface HomeViewProps {
@@ -152,7 +152,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
                         <div className="flex items-center gap-1.5 text-xs font-semibold text-white/95">
                           <Calendar className="w-3.5 h-3.5 text-[#fea0db]" />
                           <span>
-                            {evt.startDate} to {evt.endDate}
+                            {formatDateRange(evt.startDate, evt.endDate)}
                           </span>
                         </div>
                       </div>

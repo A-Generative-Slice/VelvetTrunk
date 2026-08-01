@@ -1,6 +1,6 @@
 import { jsPDF } from 'jspdf';
 import { EventItem, VendorBooking } from '../types';
-import { calculateEventDashboardStats } from './storage';
+import { calculateEventDashboardStats, formatDateRange } from './storage';
 
 export const generateEventSummaryPDF = (event: EventItem, bookings: VendorBooking[]) => {
   const doc = new jsPDF({
@@ -55,7 +55,7 @@ export const generateEventSummaryPDF = (event: EventItem, bookings: VendorBookin
   doc.setTextColor(darkTextColor[0], darkTextColor[1], darkTextColor[2]);
   doc.setFont('helvetica', 'normal');
   doc.text(event.location, 48, y + 7);
-  doc.text(`${event.startDate} to ${event.endDate} (${event.timing})`, 48, y + 15);
+  doc.text(`${formatDateRange(event.startDate, event.endDate)}${event.timing ? ` (${event.timing})` : ''}`, 48, y + 15);
 
   y += 28;
 

@@ -33,6 +33,36 @@ export function calculatePaymentStatus(rent: number, advance: number): {
   return { remaining, status };
 }
 
+// Date formatting helper (e.g. 2026-08-01 -> 01 Aug, 2026)
+export function formatDatePretty(dateStr: string): string {
+  if (!dateStr) return '';
+  const parts = dateStr.split('T')[0].split('-');
+  if (parts.length !== 3) return dateStr;
+  const year = parts[0];
+  const monthIdx = parseInt(parts[1], 10) - 1;
+  const day = parts[2].padStart(2, '0');
+
+  const monthNames = [
+    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+  ];
+
+  if (monthIdx < 0 || monthIdx > 11) return dateStr;
+
+  return `${day} ${monthNames[monthIdx]}, ${year}`;
+}
+
+export function formatDateRange(startDate?: string, endDate?: string): string {
+  const formattedStart = startDate ? formatDatePretty(startDate) : '';
+  const formattedEnd = endDate ? formatDatePretty(endDate) : '';
+
+  if (formattedStart && formattedEnd) {
+    if (formattedStart === formattedEnd) return formattedStart;
+    return `${formattedStart} to ${formattedEnd}`;
+  }
+  return formattedStart || formattedEnd || '';
+}
+
 // Local Storage helpers
 export function getLocalEvents(): EventItem[] {
   try {

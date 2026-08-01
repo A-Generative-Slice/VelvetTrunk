@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { EventItem, VendorBooking } from '../types';
-import { calculateEventDashboardStats } from '../lib/storage';
+import { calculateEventDashboardStats, formatDateRange } from '../lib/storage';
 import {
   ArrowLeft,
   Search,
@@ -162,7 +162,7 @@ export const CompletedEventsView: React.FC<CompletedEventsViewProps> = ({
                           COMPLETED
                         </span>
                         <span className="text-[11px] text-[#81737c] font-medium flex items-center gap-1">
-                          <Calendar className="w-3 h-3 text-[#904277]" /> {evt.startDate}
+                          <Calendar className="w-3 h-3 text-[#904277]" /> {formatDateRange(evt.startDate, evt.endDate)}
                         </span>
                       </div>
                       <h3 className="font-bold text-base text-[#491546] hover:underline">

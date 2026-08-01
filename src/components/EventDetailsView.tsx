@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { EventItem, VendorBooking } from '../types';
-import { calculateEventDashboardStats } from '../lib/storage';
+import { calculateEventDashboardStats, formatDateRange } from '../lib/storage';
 import { generateEventSummaryPDF } from '../lib/pdfGenerator';
 import {
   ArrowLeft,
@@ -148,7 +148,7 @@ export const EventDetailsView: React.FC<EventDetailsViewProps> = ({
           <div className="flex items-center gap-1.5">
             <Calendar className="w-3.5 h-3.5 text-[#904277]" />
             <span className="font-semibold text-[#1e1a1d]">
-              {event.startDate} - {event.endDate}
+              {formatDateRange(event.startDate, event.endDate)}
             </span>
           </div>
           <div className="flex items-center gap-1.5">
@@ -178,7 +178,7 @@ export const EventDetailsView: React.FC<EventDetailsViewProps> = ({
           <span>
             {isExportingPdf
               ? 'Generating PDF Summary...'
-              : 'Export PDF Summary (Bookings & Financial Totals)'}
+              : 'Export PDF Summary'}
           </span>
         </button>
       </div>
@@ -199,7 +199,6 @@ export const EventDetailsView: React.FC<EventDetailsViewProps> = ({
               <span className="px-2 py-0.5 rounded-md bg-[#dc97d0] text-[#491546] text-[10px] font-extrabold uppercase">
                 F SERIES
               </span>
-              <span className="text-[10px] text-[#f7b0eb] font-bold">Front Pavilion</span>
             </div>
 
             <div>
@@ -224,7 +223,6 @@ export const EventDetailsView: React.FC<EventDetailsViewProps> = ({
               <span className="px-2 py-0.5 rounded-md bg-[#fea0db] text-[#491546] text-[10px] font-extrabold uppercase">
                 S SERIES
               </span>
-              <span className="text-[10px] text-[#ffd8ec] font-bold">VIP Select</span>
             </div>
 
             <div>
