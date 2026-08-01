@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { EventItem, VendorBooking } from '../types';
 import { calculateEventDashboardStats, formatDateRange } from '../lib/storage';
 import { generateEventSummaryPDF } from '../lib/pdfGenerator';
@@ -18,8 +18,6 @@ import {
   AlertTriangle,
   XCircle,
   Maximize2,
-  ZoomIn,
-  ZoomOut,
   X,
   RotateCcw,
   Sparkles,
@@ -39,6 +37,145 @@ interface EventDetailsViewProps {
   onBack: () => void;
 }
 
+interface TouchZoomableImageViewerProps {
+  src: string;
+  alt: string;
+}
+
+const TouchZoomableImageViewer: React.FC<TouchZoomableImageViewerProps> = ({
+  src,
+  alt,
+}) => {
+  const [scale, setScale] = useState(1);
+  const [position, setPosition] = useState({ x: 0, y: 0 });
+
+  const isDraggingRef = useRef(false);
+  const startPosRef = useRef({ x: 0, y: 0 });
+  const initialPosRef = useRef({ x: 0, y: 0 });
+
+  const initialPinchDistRef = useRef<number | null>(null);
+  const initialPinchScaleRef = useRef<number>(1);
+
+  // Mouse Drag handlers
+  const handleMouseDown = (e: React.MouseEvent) => {
+    isDraggingRef.current = true;
+    startPosRef.current = { x: e.clientX, y: e.clientY };
+    initialPosRef.current = { ...position };
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isDraggingRef.current) return;
+    const dx = e.clientX - startPosRef.current.x;
+    const dy = e.clientY - startPosRef.current.y;
+    setPosition({
+      x: initialPosRef.current.x + dx,
+      y: initialPosRef.current.y + dy,
+    });
+  };
+
+  const handleMouseUp = () => {
+    isDraggingRef.current = false;
+  };
+
+  // Touch Handlers (1-finger drag & 2-finger pinch zoom)
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (e.touches.length === 1) {
+      isDraggingRef.current = true;
+      startPosRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+      initialPosRef.current = { ...position };
+      initialPinchDistRef.current = null;
+    } else if (e.touches.length === 2) {
+      isDraggingRef.current = false;
+      const t1 = e.touches[0];
+      const t2 = e.touches[1];
+      const dist = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
+      initialPinchDistRef.current = dist;
+      initialPinchScaleRef.current = scale;
+    }
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (e.touches.length === 1 && isDraggingRef.current) {
+      const dx = e.touches[0].clientX - startPosRef.current.x;
+      const dy = e.touches[0].clientY - startPosRef.current.y;
+      setPosition({
+        x: initialPosRef.current.x + dx,
+        y: initialPosRef.current.y + dy,
+      });
+    } else if (e.touches.length === 2 && initialPinchDistRef.current !== null) {
+      const t1 = e.touches[0];
+      const t2 = e.touches[1];
+      const currentDist = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
+      const factor = currentDist / initialPinchDistRef.current;
+      const newScale = Math.min(Math.max(initialPinchScaleRef.current * factor, 1), 5);
+      setScale(newScale);
+      if (newScale === 1) {
+        setPosition({ x: 0, y: 0 });
+      }
+    }
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (e.touches.length < 2) {
+      initialPinchDistRef.current = null;
+    }
+    if (e.touches.length === 0) {
+      isDraggingRef.current = false;
+    }
+  };
+
+  // Mouse Wheel Zoom
+  const handleWheel = (e: React.WheelEvent) => {
+    const delta = e.deltaY > 0 ? -0.2 : 0.2;
+    setScale((prev) => {
+      const next = Math.min(Math.max(prev + delta, 1), 5);
+      if (next === 1) setPosition({ x: 0, y: 0 });
+      return next;
+    });
+  };
+
+  // Double tap / Double click to reset or toggle zoom
+  const handleDoubleClick = () => {
+    if (scale > 1) {
+      setScale(1);
+      setPosition({ x: 0, y: 0 });
+    } else {
+      setScale(2.5);
+    }
+  };
+
+  return (
+    <div
+      onMouseDown={handleMouseDown}
+      onMouseMove={handleMouseMove}
+      onMouseUp={handleMouseUp}
+      onMouseLeave={handleMouseUp}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+      onWheel={handleWheel}
+      onDoubleClick={handleDoubleClick}
+      className="w-full h-full overflow-hidden flex items-center justify-center cursor-grab active:cursor-grabbing select-none touch-none bg-black/60 relative"
+    >
+      <img
+        src={src}
+        alt={alt}
+        style={{
+          transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`,
+          transition: isDraggingRef.current ? 'none' : 'transform 0.15s ease-out',
+        }}
+        className="max-w-full max-h-full object-contain pointer-events-none rounded-xl shadow-2xl"
+        draggable={false}
+      />
+      
+      {/* Floating gesture guide tag */}
+      <div className="absolute bottom-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-black/60 backdrop-blur-md rounded-full text-white/80 text-[11px] font-semibold pointer-events-none">
+        Pinch 2 fingers to zoom • Drag 1 finger to move
+      </div>
+    </div>
+  );
+};
+
 export const EventDetailsView: React.FC<EventDetailsViewProps> = ({
   event,
   bookings,
@@ -50,7 +187,6 @@ export const EventDetailsView: React.FC<EventDetailsViewProps> = ({
   onBack,
 }) => {
   const [isLayoutModalOpen, setIsLayoutModalOpen] = useState(false);
-  const [zoomScale, setZoomScale] = useState(1);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isExportingPdf, setIsExportingPdf] = useState(false);
   const [exportSuccessMsg, setExportSuccessMsg] = useState('');
@@ -254,79 +390,75 @@ export const EventDetailsView: React.FC<EventDetailsViewProps> = ({
           </span>
         </div>
 
-        {/* 1. Stall Occupancy Metrics Grid */}
-        <div className="grid grid-cols-3 gap-2.5">
-          <div className="bg-[#faf1f5] p-3 rounded-xl border border-[#e9e0e4] text-center">
+        {/* 3 Metric Cards */}
+        <div className="grid grid-cols-3 gap-3 text-center">
+          <div className="bg-[#faf1f5] p-3 rounded-xl border border-[#d2c2cc]/60">
             <span className="text-[10px] text-[#81737c] font-bold uppercase block">
               Total Stall
             </span>
-            <span className="text-base font-extrabold text-[#491546]">
+            <span className="text-lg font-extrabold text-[#491546]">
               {stats.totalStalls}
             </span>
           </div>
 
-          <div className="bg-[#faf1f5] p-3 rounded-xl border border-[#e9e0e4] text-center">
+          <div className="bg-[#faf1f5] p-3 rounded-xl border border-[#d2c2cc]/60">
             <span className="text-[10px] text-[#81737c] font-bold uppercase block">
               Stalls Booked
             </span>
-            <span className="text-base font-extrabold text-[#904277]">
+            <span className="text-lg font-extrabold text-[#904277]">
               {stats.stallsBooked}
             </span>
           </div>
 
-          <div className="bg-[#faf1f5] p-3 rounded-xl border border-[#e9e0e4] text-center">
+          <div className="bg-[#faf1f5] p-3 rounded-xl border border-[#d2c2cc]/60">
             <span className="text-[10px] text-[#81737c] font-bold uppercase block">
               Stalls Available
             </span>
-            <span className="text-base font-extrabold text-emerald-700">
+            <span className="text-lg font-extrabold text-emerald-700">
               {stats.stallsAvailable}
             </span>
           </div>
         </div>
 
-        {/* 2. Financial Metrics Grid */}
-        <div className="space-y-2 pt-2 border-t border-[#f4ecef]">
-          <span className="text-xs font-bold uppercase text-[#81737c] tracking-wider block">
-            Financial Rent Summary
-          </span>
+        {/* Financial Metrics Strip */}
+        <div className="pt-2 border-t border-[#f4ecef] space-y-2">
+          <div className="flex items-center justify-between text-xs font-bold">
+            <span className="text-[#81737c] flex items-center gap-1">
+              <DollarSign className="w-3.5 h-3.5 text-[#904277]" /> Revenue Financial Overview
+            </span>
+            <span className="text-[#491546]">
+              Total Value: ₹{stats.totalValue.toLocaleString()}
+            </span>
+          </div>
 
-          <div className="grid grid-cols-3 gap-2.5">
-            <div className="bg-[#ffffff] p-3 rounded-xl border border-[#d2c2cc] text-center shadow-2xs">
-              <span className="text-[10px] text-[#81737c] font-bold uppercase block">
-                Total Value
-              </span>
-              <span className="text-xs font-black text-[#491546] block truncate">
-                ₹{stats.totalValue.toLocaleString()}
-              </span>
+          <div className="grid grid-cols-2 gap-3 text-xs">
+            <div className="bg-emerald-50 border border-emerald-200 p-2.5 rounded-xl flex items-center justify-between">
+              <div>
+                <span className="text-[10px] text-emerald-800 font-bold uppercase block">
+                  Advance Collected
+                </span>
+                <span className="text-base font-extrabold text-emerald-900">
+                  ₹{stats.totalCollected.toLocaleString()}
+                </span>
+              </div>
+              <CheckCircle className="w-5 h-5 text-emerald-600" />
             </div>
 
-            <div className="bg-emerald-50 p-3 rounded-xl border border-emerald-200 text-center shadow-2xs">
-              <span className="text-[10px] text-emerald-800 font-bold uppercase block">
-                Collected
-              </span>
-              <span className="text-xs font-black text-emerald-700 block truncate">
-                ₹{stats.totalCollected.toLocaleString()}
-              </span>
-            </div>
-
-            <div className="bg-amber-50 p-3 rounded-xl border border-amber-200 text-center shadow-2xs">
-              <span className="text-[10px] text-amber-800 font-bold uppercase block">
-                Pending Amount
-              </span>
-              <span className="text-xs font-black text-amber-700 block truncate">
-                ₹{stats.totalPending.toLocaleString()}
-              </span>
+            <div className="bg-amber-50 border border-amber-200 p-2.5 rounded-xl flex items-center justify-between">
+              <div>
+                <span className="text-[10px] text-amber-800 font-bold uppercase block">
+                  Remaining Pending
+                </span>
+                <span className="text-base font-extrabold text-amber-900">
+                  ₹{stats.totalPending.toLocaleString()}
+                </span>
+              </div>
+              <Clock3 className="w-5 h-5 text-amber-600" />
             </div>
           </div>
-        </div>
 
-        {/* 3. Collection Status (Paid, Partial, Unpaid) */}
-        <div className="space-y-2 pt-2 border-t border-[#f4ecef]">
-          <span className="text-xs font-bold uppercase text-[#81737c] tracking-wider block">
-            Collection Status Breakdown
-          </span>
-
-          <div className="grid grid-cols-3 gap-2 text-center text-xs">
+          {/* Vendors Payment Status Breakdown Pills */}
+          <div className="grid grid-cols-3 gap-2 pt-2 text-center text-xs">
             {/* Paid Box */}
             <div className="bg-emerald-50 border border-emerald-200 p-2.5 rounded-xl flex flex-col items-center gap-0.5">
               <div className="flex items-center gap-1 text-emerald-800 font-bold">
@@ -335,7 +467,7 @@ export const EventDetailsView: React.FC<EventDetailsViewProps> = ({
               <span className="text-base font-extrabold text-emerald-900">
                 {stats.paidCount}
               </span>
-              <span className="text-[10px] text-emerald-700 font-medium">Fully Paid</span>
+              <span className="text-[10px] text-emerald-700 font-medium">Fully Settled</span>
             </div>
 
             {/* Partial Box */}
@@ -346,9 +478,7 @@ export const EventDetailsView: React.FC<EventDetailsViewProps> = ({
               <span className="text-base font-extrabold text-amber-900">
                 {stats.partialCount}
               </span>
-              <span className="text-[10px] text-amber-700 font-medium">
-                Advance Paid
-              </span>
+              <span className="text-[10px] text-amber-700 font-medium">Balance Pending</span>
             </div>
 
             {/* Unpaid Box */}
@@ -372,10 +502,7 @@ export const EventDetailsView: React.FC<EventDetailsViewProps> = ({
             <Maximize2 className="w-4 h-4 text-[#904277]" /> Exhibition Layout Plan
           </h2>
           <button
-            onClick={() => {
-              setZoomScale(1);
-              setIsLayoutModalOpen(true);
-            }}
+            onClick={() => setIsLayoutModalOpen(true)}
             className="text-xs font-bold text-[#491546] hover:underline flex items-center gap-1"
           >
             <Maximize2 className="w-3.5 h-3.5" /> Fullscreen View
@@ -383,10 +510,7 @@ export const EventDetailsView: React.FC<EventDetailsViewProps> = ({
         </div>
 
         <div
-          onClick={() => {
-            setZoomScale(1);
-            setIsLayoutModalOpen(true);
-          }}
+          onClick={() => setIsLayoutModalOpen(true)}
           className="w-full h-52 bg-[#faf1f5] rounded-xl overflow-hidden border border-[#d2c2cc] relative cursor-pointer group"
         >
           <img
@@ -395,105 +519,50 @@ export const EventDetailsView: React.FC<EventDetailsViewProps> = ({
             className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300"
           />
           <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-bold gap-1.5">
-            <Maximize2 className="w-4 h-4" /> Click to enlarge & zoom layout
+            <Maximize2 className="w-4 h-4" /> Click to view full screen
           </div>
         </div>
       </div>
 
-      {/* FULLSCREEN INTERACTIVE LAYOUT MODAL WITH ZOOM & PAN */}
+      {/* CLEAN ORIGINAL FULLSCREEN MODAL WITH NATIVE 2-FINGER PINCH ZOOM & 1-FINGER DRAG */}
       {isLayoutModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-2 sm:p-4">
-          <div className="bg-[#1e1a1d] text-white rounded-3xl max-w-5xl w-full h-[92vh] flex flex-col border border-white/10 shadow-2xl overflow-hidden animate-scaleUp">
-            {/* Header with Title and Control Buttons */}
-            <div className="p-4 bg-[#2a2428] border-b border-white/10 flex items-center justify-between gap-3">
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-5">
+          <div className="bg-[#fff7fa] rounded-2xl max-w-4xl w-full h-[90vh] flex flex-col gap-3 relative overflow-hidden shadow-2xl border border-[#e9e0e4] animate-scaleUp">
+            {/* Clean Original Header */}
+            <div className="px-4 py-3 bg-[#ffffff] border-b border-[#e9e0e4] flex items-center justify-between">
               <div>
-                <h3 className="font-extrabold text-base text-white flex items-center gap-2">
-                  <Maximize2 className="w-4 h-4 text-[#fea0db]" />
-                  <span>{event.name} - Floor Plan Layout</span>
+                <h3 className="font-bold text-sm text-[#491546]">
+                  {event.name} - Floor Plan Layout
                 </h3>
-                <p className="text-xs text-white/60">
-                  Use zoom controls to inspect stall numbers in high detail
+                <p className="text-[11px] text-[#81737c]">
+                  Pinch 2 fingers to zoom • Drag 1 finger to move
                 </p>
               </div>
 
-              {/* Zoom Control Buttons Toolbar */}
-              <div className="flex items-center gap-1.5 bg-black/40 backdrop-blur-md p-1.5 rounded-2xl border border-white/10">
-                <button
-                  type="button"
-                  onClick={() => setZoomScale((prev) => Math.max(prev - 0.25, 0.5))}
-                  disabled={zoomScale <= 0.5}
-                  className="p-2 rounded-xl bg-white/10 hover:bg-white/20 disabled:opacity-30 disabled:pointer-events-none text-white transition-all active:scale-95"
-                  title="Zoom Out (-)"
-                >
-                  <ZoomOut className="w-4 h-4" />
-                </button>
-
-                <span className="px-2 text-xs font-black text-[#fea0db] min-w-[45px] text-center">
-                  {Math.round(zoomScale * 100)}%
-                </span>
-
-                <button
-                  type="button"
-                  onClick={() => setZoomScale((prev) => Math.min(prev + 0.25, 4))}
-                  disabled={zoomScale >= 4}
-                  className="p-2 rounded-xl bg-white/10 hover:bg-white/20 disabled:opacity-30 disabled:pointer-events-none text-white transition-all active:scale-95"
-                  title="Zoom In (+)"
-                >
-                  <ZoomIn className="w-4 h-4" />
-                </button>
-
-                <div className="w-px h-5 bg-white/20 my-auto mx-0.5"></div>
-
-                <button
-                  type="button"
-                  onClick={() => setZoomScale(1)}
-                  className="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white transition-all active:scale-95"
-                  title="Reset Zoom (100%)"
-                >
-                  <RotateCcw className="w-4 h-4" />
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsLayoutModalOpen(false);
-                    setZoomScale(1);
-                  }}
-                  className="p-2 rounded-xl bg-red-500/80 hover:bg-red-600 text-white transition-all active:scale-95 ml-1"
-                  title="Close Fullscreen View"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-
-            {/* Zoomable Image Container */}
-            <div className="flex-1 overflow-auto p-4 flex items-center justify-center bg-black/60 relative cursor-grab active:cursor-grabbing">
-              <div
-                className="transition-transform duration-200 ease-out flex items-center justify-center"
-                style={{ transform: `scale(${zoomScale})` }}
-              >
-                <img
-                  src={event.layoutImageUrl}
-                  alt="Event Layout Floor Plan"
-                  className="max-w-full max-h-[75vh] object-contain rounded-xl shadow-2xl select-none"
-                  draggable={false}
-                />
-              </div>
-            </div>
-
-            {/* Footer Info Strip */}
-            <div className="p-3 bg-[#2a2428] border-t border-white/10 flex items-center justify-between text-xs text-white/70">
-              <span>Use + / - buttons to zoom up to 400% for fine details.</span>
               <button
-                type="button"
-                onClick={() => {
-                  setIsLayoutModalOpen(false);
-                  setZoomScale(1);
-                }}
-                className="px-4 py-1.5 bg-[#491546] hover:bg-[#632c5e] text-white font-bold rounded-xl text-xs"
+                onClick={() => setIsLayoutModalOpen(false)}
+                className="w-8 h-8 rounded-full bg-[#e9e0e4] text-[#491546] hover:bg-[#d2c2cc] flex items-center justify-center font-bold transition-colors"
+                title="Close"
               >
-                Close Preview
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Gesture-Enabled Zoomable Floor Plan Viewer */}
+            <div className="flex-1 bg-[#1e1a1d] rounded-xl overflow-hidden relative">
+              <TouchZoomableImageViewer
+                src={event.layoutImageUrl}
+                alt={`${event.name} Floor Plan`}
+              />
+            </div>
+
+            {/* Close Button */}
+            <div className="px-4 pb-3">
+              <button
+                onClick={() => setIsLayoutModalOpen(false)}
+                className="w-full py-2.5 bg-[#491546] hover:bg-[#632c5e] text-white text-xs font-bold rounded-xl active:scale-95 transition-all shadow-xs"
+              >
+                Close Floor Plan
               </button>
             </div>
           </div>
