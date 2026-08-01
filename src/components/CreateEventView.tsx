@@ -19,6 +19,16 @@ interface CreateEventViewProps {
   onBack: () => void;
 }
 
+function formatTime12h(time24: string): string {
+  if (!time24) return '';
+  const [h, m] = time24.split(':').map(Number);
+  if (isNaN(h) || isNaN(m)) return time24;
+  const period = h >= 12 ? 'PM' : 'AM';
+  const h12 = h % 12 || 12;
+  const mStr = m.toString().padStart(2, '0');
+  return `${h12.toString().padStart(2, '0')}:${mStr} ${period}`;
+}
+
 export const CreateEventView: React.FC<CreateEventViewProps> = ({
   initialEvent,
   onSave,
@@ -28,7 +38,11 @@ export const CreateEventView: React.FC<CreateEventViewProps> = ({
   const [location, setLocation] = useState(initialEvent?.location || '');
   const [startDate, setStartDate] = useState(initialEvent?.startDate || '');
   const [endDate, setEndDate] = useState(initialEvent?.endDate || '');
-  const [timing, setTiming] = useState(initialEvent?.timing || '');
+
+  // Time pickers for Opening and Closing timing
+  const [startTime, setStartTime] = useState(initialEvent?.timing ? '10:00' : '');
+  const [endTime, setEndTime] = useState(initialEvent?.timing ? '21:00' : '');
+
   const [mapLocation, setMapLocation] = useState(initialEvent?.mapLocation || '');
 
   // Stall Limits: F Series & S Series (supports empty string state for smooth backspacing)
@@ -39,7 +53,7 @@ export const CreateEventView: React.FC<CreateEventViewProps> = ({
     initialEvent?.sSeriesLimit ?? 20
   );
 
-  // JPG Layout Image
+  // Layout Image
   const [layoutImageUrl, setLayoutImageUrl] = useState<string>(
     initialEvent?.layoutImageUrl || DEFAULT_LAYOUT_IMAGE
   );
@@ -51,7 +65,7 @@ export const CreateEventView: React.FC<CreateEventViewProps> = ({
     const file = e.target.files?.[0];
     if (file) {
       if (!file.type.includes('image')) {
-        setErrorMsg('Please upload a valid JPG or PNG image file.');
+        setErrorMsg('Please select a valid image file (PNG, JPG, SVG, WebP).');
         return;
       }
       setImageFileName(file.name);
@@ -77,13 +91,21 @@ export const CreateEventView: React.FC<CreateEventViewProps> = ({
       return;
     }
 
+    // Format combined timing string if times selected
+    let timingString = '';
+    if (startTime && endTime) {
+      timingString = `${formatTime12h(startTime)} - ${formatTime12h(endTime)}`;
+    } else if (startTime) {
+      timingString = `From ${formatTime12h(startTime)}`;
+    }
+
     onSave(
       {
         name: name.trim(),
         location: location.trim(),
         startDate,
         endDate,
-        timing: timing.trim(),
+        timing: timingString,
         mapLocation: mapLocation.trim(),
         fSeriesLimit: fSeriesLimit === '' ? 100 : Number(fSeriesLimit) || 100,
         sSeriesLimit: sSeriesLimit === '' ? 20 : Number(sSeriesLimit) || 20,
@@ -166,7 +188,7 @@ export const CreateEventView: React.FC<CreateEventViewProps> = ({
               type="date"
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
-              className="w-full px-3 py-2.5 bg-[#ffffff] border border-[#d2c2cc] rounded-xl text-xs font-medium text-[#1e1a1d] focus:outline-hidden focus:border-[#491546] shadow-2xs"
+              className="w-full px-3 py-2.5 bg-[#ffffff] border border-[#d2c2cc] rounded-xl text-xs font-medium text-[#1e1a1d] focus:outline-hidden focus:border-[#491546] shadow-2xs cursor-pointer"
             />
           </div>
 
@@ -179,24 +201,43 @@ export const CreateEventView: React.FC<CreateEventViewProps> = ({
               type="date"
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
-              className="w-full px-3 py-2.5 bg-[#ffffff] border border-[#d2c2cc] rounded-xl text-xs font-medium text-[#1e1a1d] focus:outline-hidden focus:border-[#491546] shadow-2xs"
+              className="w-full px-3 py-2.5 bg-[#ffffff] border border-[#d2c2cc] rounded-xl text-xs font-medium text-[#1e1a1d] focus:outline-hidden focus:border-[#491546] shadow-2xs cursor-pointer"
             />
           </div>
         </div>
 
-        {/* Timing */}
+        {/* Exhibition Timing with Clock Pop-up Time Pickers */}
         <div className="space-y-1.5">
-          <label htmlFor="timing-input" className="text-xs font-bold uppercase tracking-wider text-[#491546] flex items-center gap-1.5">
+          <label className="text-xs font-bold uppercase tracking-wider text-[#491546] flex items-center gap-1.5">
             <Clock className="w-3.5 h-3.5 text-[#904277]" /> Exhibition Timing
           </label>
-          <input
-            id="timing-input"
-            type="text"
-            value={timing}
-            onChange={(e) => setTiming(e.target.value)}
-            placeholder="e.g. 10:00 AM - 09:00 PM"
-            className="w-full px-4 py-3 bg-[#ffffff] border border-[#d2c2cc] rounded-xl text-sm font-medium text-[#1e1a1d] focus:outline-hidden focus:border-[#491546] shadow-2xs"
-          />
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <span className="text-[10px] font-bold text-[#81737c] uppercase block">Opening Time</span>
+              <input
+                type="time"
+                value={startTime}
+                onChange={(e) => setStartTime(e.target.value)}
+                className="w-full px-3 py-2.5 bg-[#ffffff] border border-[#d2c2cc] rounded-xl text-xs font-semibold text-[#1e1a1d] focus:outline-hidden focus:border-[#491546] cursor-pointer shadow-2xs"
+              />
+            </div>
+
+            <div className="space-y-1">
+              <span className="text-[10px] font-bold text-[#81737c] uppercase block">Closing Time</span>
+              <input
+                type="time"
+                value={endTime}
+                onChange={(e) => setEndTime(e.target.value)}
+                className="w-full px-3 py-2.5 bg-[#ffffff] border border-[#d2c2cc] rounded-xl text-xs font-semibold text-[#1e1a1d] focus:outline-hidden focus:border-[#491546] cursor-pointer shadow-2xs"
+              />
+            </div>
+          </div>
+          {startTime && endTime && (
+            <p className="text-[11px] font-bold text-[#491546] pt-1">
+              Selected Timing: <span className="text-[#904277]">{formatTime12h(startTime)} - {formatTime12h(endTime)}</span>
+            </p>
+          )}
         </div>
 
         {/* Map Location Link */}
@@ -214,7 +255,7 @@ export const CreateEventView: React.FC<CreateEventViewProps> = ({
           />
         </div>
 
-        {/* CLEAN STALL CAPACITY LIMITS: F SERIES AND S SERIES (No Extra Subtext) */}
+        {/* CLEAN STALL CAPACITY LIMITS: F SERIES AND S SERIES */}
         <div className="space-y-2 pt-2">
           <label className="text-xs font-bold uppercase tracking-wider text-[#491546] flex items-center gap-1.5">
             <Layers className="w-3.5 h-3.5 text-[#904277]" /> Stall Capacity Limits
@@ -275,38 +316,42 @@ export const CreateEventView: React.FC<CreateEventViewProps> = ({
           </div>
         </div>
 
-        {/* Upload Layout JPG Image */}
+        {/* Sleek Layout Plan Upload Dropzone (No JPG mention, Better UI) */}
         <div className="space-y-2 pt-2">
           <label className="text-xs font-bold uppercase tracking-wider text-[#491546] flex items-center gap-1.5">
-            <ImageIcon className="w-3.5 h-3.5 text-[#904277]" /> Upload Layout Plan (JPG Format)
+            <ImageIcon className="w-3.5 h-3.5 text-[#904277]" /> Exhibition Layout Plan
           </label>
 
-          <div className="p-4 rounded-2xl bg-[#ffffff] border border-[#d2c2cc] shadow-2xs space-y-3">
-            <div className="flex items-center gap-3">
-              <label className="px-4 py-2.5 bg-[#491546] hover:bg-[#632c5e] text-white text-xs font-bold rounded-xl cursor-pointer shadow-xs active:scale-95 transition-all flex items-center gap-1.5">
-                <Upload className="w-4 h-4" />
-                <span>Browse JPG File</span>
-                <input
-                  type="file"
-                  accept="image/jpeg,image/png,image/jpg"
-                  onChange={handleImageUpload}
-                  className="hidden"
-                />
-              </label>
-              <span className="text-xs text-[#81737c] font-medium truncate max-w-[200px]">
-                {imageFileName || 'No custom layout selected (Default SVG layout used)'}
-              </span>
+          <div className="p-5 rounded-2xl bg-[#ffffff] border-2 border-dashed border-[#d2c2cc] hover:border-[#491546] transition-all space-y-4 text-center">
+            <div className="flex flex-col items-center justify-center gap-2">
+              <div className="w-12 h-12 rounded-2xl bg-[#faf1f5] text-[#491546] flex items-center justify-center shadow-xs">
+                <Upload className="w-6 h-6" />
+              </div>
+              <div>
+                <label className="px-5 py-2.5 bg-[#491546] hover:bg-[#632c5e] text-white text-xs font-bold rounded-xl cursor-pointer shadow-md active:scale-95 transition-all inline-flex items-center gap-2">
+                  <span>Upload Layout Plan</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageUpload}
+                    className="hidden"
+                  />
+                </label>
+              </div>
+              <p className="text-[11px] text-[#81737c] font-medium mt-1">
+                {imageFileName ? `Selected File: ${imageFileName}` : 'Select a custom layout image or use default floor plan'}
+              </p>
             </div>
 
             {/* Layout Image Preview */}
-            <div className="w-full h-40 bg-[#f4ecef] rounded-xl border border-[#e9e0e4] overflow-hidden relative flex items-center justify-center">
+            <div className="w-full h-48 bg-[#f4ecef] rounded-xl border border-[#e9e0e4] overflow-hidden relative flex items-center justify-center">
               <img
                 src={layoutImageUrl}
                 alt="Layout Plan Preview"
                 className="w-full h-full object-contain"
               />
-              <div className="absolute top-2 right-2 px-2.5 py-1 bg-black/60 backdrop-blur-md rounded-lg text-white text-[10px] font-bold">
-                Preview Layout
+              <div className="absolute top-2 right-2 px-3 py-1 bg-black/70 backdrop-blur-md rounded-lg text-white text-[10px] font-bold">
+                Layout Floor Plan
               </div>
             </div>
           </div>
