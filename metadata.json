@@ -1,0 +1,6 @@
+{
+  "name": "The Velvet Trunk",
+  "description": "Mobile-friendly PWA for luxury event organizing, stall allocations (F & S series), vendor management, and financial tracking.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
