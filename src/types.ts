@@ -15,6 +15,15 @@ export type StallCategory =
   | 'Electronics & Gadgets'
   | 'Other';
 
+export interface PaymentTransaction {
+  id: string;
+  amount: number;
+  paymentMode: PaymentMode;
+  date: string;
+  note?: string;
+  createdAt: string;
+}
+
 export interface VendorBooking {
   id: string;
   eventId: string;
@@ -31,6 +40,7 @@ export interface VendorBooking {
   paymentMode: PaymentMode;
   calculatedStatus: PaymentStatus;
   notes?: string;
+  paymentLogs?: PaymentTransaction[];
   createdAt: string;
 }
 

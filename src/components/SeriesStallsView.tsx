@@ -6,6 +6,7 @@ import {
   PaymentMode,
   StallCategory,
   PaymentStatus,
+  PaymentTransaction,
 } from '../types';
 import { calculatePaymentStatus, formatDatePretty } from '../lib/storage';
 import {
@@ -33,6 +34,8 @@ import {
   ChevronRight,
   Info,
   Clock,
+  Check,
+  History,
 } from 'lucide-react';
 
 interface SeriesStallsViewProps {
@@ -89,6 +92,13 @@ export const SeriesStallsView: React.FC<SeriesStallsViewProps> = ({
 
   // Modal State for Viewing Detailed Stall Information & Payment Logs
   const [viewingBookingDetails, setViewingBookingDetails] = useState<VendorBooking | null>(null);
+
+  // Record Additional Payment State (Inside Stall Details Modal)
+  const [isRecordPaymentOpen, setIsRecordPaymentOpen] = useState(false);
+  const [newPaymentAmount, setNewPaymentAmount] = useState<number | ''>('');
+  const [newPaymentMode, setNewPaymentMode] = useState<PaymentMode>('UPI / QR Code');
+  const [newPaymentDate, setNewPaymentDate] = useState('');
+  const [newPaymentNote, setNewPaymentNote] = useState('');
 
   // Form Fields (Empty defaults for clean entry)
   const [exhibitorName, setExhibitorName] = useState('');
@@ -147,6 +157,53 @@ export const SeriesStallsView: React.FC<SeriesStallsViewProps> = ({
     setNotes(booking.notes || '');
     setFormError('');
     setIsModalOpen(true);
+  };
+
+  const handleOpenRecordPayment = (booking: VendorBooking) => {
+    setNewPaymentAmount(booking.remainingBalance > 0 ? booking.remainingBalance : '');
+    setNewPaymentMode(booking.paymentMode || 'UPI / QR Code');
+    setNewPaymentDate(new Date().toISOString().split('T')[0]);
+    setNewPaymentNote('');
+    setIsRecordPaymentOpen(true);
+  };
+
+  const handleSaveRecordPayment = () => {
+    if (!viewingBookingDetails) return;
+    const amt = typeof newPaymentAmount === 'number' ? newPaymentAmount : 0;
+    if (amt <= 0) {
+      alert('Please enter a valid payment amount greater than 0.');
+      return;
+    }
+
+    const newTx: PaymentTransaction = {
+      id: Date.now().toString(),
+      amount: amt,
+      paymentMode: newPaymentMode,
+      date: newPaymentDate || new Date().toISOString().split('T')[0],
+      note: newPaymentNote.trim() || undefined,
+      createdAt: new Date().toISOString(),
+    };
+
+    const updatedAdvance = (viewingBookingDetails.stallAdvance || 0) + amt;
+    const { remaining: updatedRemaining, status: updatedStatus } =
+      calculatePaymentStatus(viewingBookingDetails.stallRent, updatedAdvance);
+
+    const updatedLogs = [...(viewingBookingDetails.paymentLogs || []), newTx];
+
+    const updatedBooking: VendorBooking = {
+      ...viewingBookingDetails,
+      stallAdvance: updatedAdvance,
+      remainingBalance: updatedRemaining,
+      calculatedStatus: updatedStatus,
+      paymentLogs: updatedLogs,
+    };
+
+    // Save upstream
+    onSaveBooking(updatedBooking, viewingBookingDetails.id);
+
+    // Update live viewing state & close inline form
+    setViewingBookingDetails(updatedBooking);
+    setIsRecordPaymentOpen(false);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -208,6 +265,7 @@ export const SeriesStallsView: React.FC<SeriesStallsViewProps> = ({
         paymentMode,
         calculatedStatus,
         notes,
+        paymentLogs: editingBooking?.paymentLogs || [],
       },
       editingBooking?.id
     );
@@ -392,7 +450,10 @@ export const SeriesStallsView: React.FC<SeriesStallsViewProps> = ({
           filteredBookings.map((b) => (
             <div
               key={b.id}
-              onClick={() => setViewingBookingDetails(b)}
+              onClick={() => {
+                setViewingBookingDetails(b);
+                setIsRecordPaymentOpen(false);
+              }}
               className="bg-[#ffffff] rounded-2xl border border-[#e9e0e4] p-4 shadow-2xs hover:shadow-md hover:border-[#904277]/50 transition-all space-y-3 cursor-pointer group"
             >
               {/* Header with Stall Number and Payment Status */}
@@ -455,7 +516,7 @@ export const SeriesStallsView: React.FC<SeriesStallsViewProps> = ({
                 </div>
                 <div>
                   <span className="text-[10px] text-emerald-800 font-bold uppercase block">
-                    Advance Paid
+                    Collected
                   </span>
                   <span className="font-extrabold text-emerald-700">
                     ₹{b.stallAdvance.toLocaleString()}
@@ -471,14 +532,14 @@ export const SeriesStallsView: React.FC<SeriesStallsViewProps> = ({
                 </div>
               </div>
 
-              {/* Tap to View Details Footer Badge (Replaces direct Edit/Delete buttons) */}
+              {/* Tap to View Details Footer Badge */}
               <div className="flex items-center justify-between pt-1 border-t border-[#f4ecef] text-[11px] text-[#904277] font-extrabold">
                 <div className="flex items-center gap-1 text-[#81737c] font-medium">
                   <CreditCard className="w-3.5 h-3.5 text-[#904277]" />
                   <span>{b.paymentMode}</span>
                 </div>
                 <div className="flex items-center gap-1 text-[#491546] font-bold group-hover:translate-x-0.5 transition-transform">
-                  <span>View Details & Payment Log</span>
+                  <span>View Details & Log Payment</span>
                   <ChevronRight className="w-3.5 h-3.5" />
                 </div>
               </div>
@@ -545,11 +606,11 @@ export const SeriesStallsView: React.FC<SeriesStallsViewProps> = ({
                 </div>
               </div>
 
-              {/* Payment Log & Financial Breakdown */}
+              {/* Payment Breakdown & Add Payment Log Box */}
               <div className="bg-[#ffffff] rounded-xl p-3.5 space-y-3 border border-[#e9e0e4] shadow-2xs">
                 <div className="flex items-center justify-between">
                   <h4 className="text-[10px] font-extrabold uppercase tracking-wider text-[#491546] flex items-center gap-1.5">
-                    <Receipt className="w-3.5 h-3.5 text-[#904277]" /> Payment Breakdown & Logs
+                    <Receipt className="w-3.5 h-3.5 text-[#904277]" /> Payment Breakdown
                   </h4>
                   <span
                     className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase ${
@@ -573,7 +634,7 @@ export const SeriesStallsView: React.FC<SeriesStallsViewProps> = ({
                   </div>
 
                   <div className="flex items-center justify-between py-1 border-b border-[#f4ecef]">
-                    <span className="text-emerald-800 font-medium">Advance Paid Amount:</span>
+                    <span className="text-emerald-800 font-medium">Total Amount Collected:</span>
                     <span className="font-extrabold text-emerald-700 text-sm">
                       ₹{viewingBookingDetails.stallAdvance.toLocaleString()}
                     </span>
@@ -585,25 +646,150 @@ export const SeriesStallsView: React.FC<SeriesStallsViewProps> = ({
                       ₹{viewingBookingDetails.remainingBalance.toLocaleString()}
                     </span>
                   </div>
-
-                  <div className="flex items-center justify-between py-1">
-                    <span className="text-[#81737c] font-medium">Payment Mode Used:</span>
-                    <span className="font-bold text-[#1e1a1d]">{viewingBookingDetails.paymentMode}</span>
-                  </div>
                 </div>
 
-                {/* Audit Log Timeline */}
-                <div className="p-2.5 bg-[#faf1f5] rounded-lg border border-[#e9e0e4] text-[11px] text-[#4f434c] space-y-1">
-                  <div className="flex items-center gap-1 font-bold text-[#491546]">
-                    <Clock className="w-3 h-3 text-[#904277]" />
-                    <span>Transaction History Log</span>
+                {/* RECORD NEW PAYMENT BUTTON OR INLINE FORM */}
+                {viewingBookingDetails.remainingBalance > 0 ? (
+                  !isRecordPaymentOpen ? (
+                    <button
+                      onClick={() => handleOpenRecordPayment(viewingBookingDetails)}
+                      className="w-full py-2.5 px-3 bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 text-white font-extrabold text-xs rounded-xl shadow-xs active:scale-95 transition-all flex items-center justify-center gap-1.5 mt-2"
+                    >
+                      <Plus className="w-4 h-4 stroke-[3]" /> Record Remaining Payment (₹{viewingBookingDetails.remainingBalance.toLocaleString()} Due)
+                    </button>
+                  ) : (
+                    <div className="p-3 bg-emerald-50/70 border border-emerald-200 rounded-xl space-y-3 mt-2 animate-fadeIn">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[11px] font-extrabold uppercase text-emerald-900 flex items-center gap-1">
+                          <DollarSign className="w-3.5 h-3.5 text-emerald-700" /> Record Payment Entry
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setIsRecordPaymentOpen(false)}
+                          className="text-xs font-bold text-emerald-800 hover:underline"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-2 text-xs">
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-bold uppercase text-emerald-900">
+                            Amount Paid (₹) *
+                          </label>
+                          <input
+                            type="number"
+                            min="1"
+                            max={viewingBookingDetails.remainingBalance}
+                            value={newPaymentAmount}
+                            onChange={(e) =>
+                              setNewPaymentAmount(
+                                e.target.value === '' ? '' : Number(e.target.value)
+                              )
+                            }
+                            placeholder="Amount"
+                            className="w-full px-2.5 py-1.5 bg-white border border-emerald-300 rounded-lg font-bold text-emerald-900 text-xs focus:outline-hidden focus:border-emerald-600"
+                          />
+                        </div>
+
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-bold uppercase text-emerald-900">
+                            Payment Date
+                          </label>
+                          <input
+                            type="date"
+                            value={newPaymentDate}
+                            onChange={(e) => setNewPaymentDate(e.target.value)}
+                            className="w-full px-2 py-1.5 bg-white border border-emerald-300 rounded-lg text-xs font-semibold text-emerald-900 focus:outline-hidden"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold uppercase text-emerald-900">
+                          Payment Mode
+                        </label>
+                        <div className="grid grid-cols-2 gap-1.5">
+                          {PAYMENT_MODES.map((mode) => (
+                            <button
+                              type="button"
+                              key={mode}
+                              onClick={() => setNewPaymentMode(mode)}
+                              className={`py-1 px-2 rounded-lg text-[10px] font-bold border transition-all ${
+                                newPaymentMode === mode
+                                  ? 'bg-emerald-700 text-white border-emerald-700'
+                                  : 'bg-white text-emerald-900 border-emerald-200'
+                              }`}
+                            >
+                              {mode}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold uppercase text-emerald-900">
+                          Notes / Reference No. (Optional)
+                        </label>
+                        <input
+                          type="text"
+                          value={newPaymentNote}
+                          onChange={(e) => setNewPaymentNote(e.target.value)}
+                          placeholder="e.g. Final settlement via PhonePe"
+                          className="w-full px-2.5 py-1.5 bg-white border border-emerald-300 rounded-lg text-xs font-medium text-emerald-900 focus:outline-hidden"
+                        />
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={handleSaveRecordPayment}
+                        className="w-full py-2 bg-emerald-700 hover:bg-emerald-800 text-white font-extrabold text-xs rounded-lg shadow-xs active:scale-95 transition-all flex items-center justify-center gap-1"
+                      >
+                        <Check className="w-4 h-4 stroke-[3]" /> Save Payment Log
+                      </button>
+                    </div>
+                  )
+                ) : (
+                  <div className="p-2.5 bg-emerald-100 border border-emerald-300 text-emerald-900 rounded-xl text-xs font-extrabold text-center flex items-center justify-center gap-1.5 mt-2">
+                    <CheckCircle className="w-4 h-4 text-emerald-700" />
+                    <span>STALL RENT SETTLED IN FULL</span>
                   </div>
-                  <p>
-                    • Booking logged on <span className="font-semibold">{formatDatePretty(viewingBookingDetails.bookingDate)}</span> via <span className="font-semibold">{viewingBookingDetails.paymentMode}</span>.
-                  </p>
-                  <p>
-                    • Initial deposit received: <span className="font-bold text-emerald-700">₹{viewingBookingDetails.stallAdvance.toLocaleString()}</span>.
-                  </p>
+                )}
+
+                {/* Audit Log Timeline */}
+                <div className="p-3 bg-[#faf1f5] rounded-xl border border-[#e9e0e4] text-[11px] text-[#4f434c] space-y-2 mt-2">
+                  <div className="flex items-center gap-1.5 font-extrabold text-[#491546] border-b border-[#e9e0e4] pb-1">
+                    <History className="w-3.5 h-3.5 text-[#904277]" />
+                    <span>Payment Audit Trail & Transaction Logs</span>
+                  </div>
+
+                  {/* Initial Booking Log */}
+                  <div className="flex items-start gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#491546] mt-1 shrink-0"></span>
+                    <div>
+                      <p className="font-bold text-[#1e1a1d]">
+                        Initial Deposit Recorded: <span className="text-emerald-700">₹{(viewingBookingDetails.paymentLogs && viewingBookingDetails.paymentLogs.length > 0 ? (viewingBookingDetails.stallAdvance - viewingBookingDetails.paymentLogs.reduce((acc, l) => acc + l.amount, 0)) : viewingBookingDetails.stallAdvance).toLocaleString()}</span>
+                      </p>
+                      <p className="text-[10px] text-[#81737c]">
+                        {formatDatePretty(viewingBookingDetails.bookingDate)} via {viewingBookingDetails.paymentMode}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Additional Recorded Payment Logs */}
+                  {viewingBookingDetails.paymentLogs && viewingBookingDetails.paymentLogs.map((tx, idx) => (
+                    <div key={tx.id || idx} className="flex items-start gap-1.5 pt-1 border-t border-[#e9e0e4]/60">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 mt-1 shrink-0"></span>
+                      <div>
+                        <p className="font-bold text-emerald-800">
+                          Payment Received: <span className="font-black">+₹{tx.amount.toLocaleString()}</span> ({tx.paymentMode})
+                        </p>
+                        <p className="text-[10px] text-[#81737c]">
+                          Recorded on {formatDatePretty(tx.date)} {tx.note ? `• Ref: ${tx.note}` : ''}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
 
