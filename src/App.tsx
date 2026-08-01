@@ -15,8 +15,8 @@ import { CreateEventView } from './components/CreateEventView';
 import { CompletedEventsView } from './components/CompletedEventsView';
 import { EventDetailsView } from './components/EventDetailsView';
 import { SeriesStallsView } from './components/SeriesStallsView';
+import { SupportView } from './components/SupportView';
 import { SupabaseModal } from './components/SupabaseModal';
-import { ContactSupportModal } from './components/ContactSupportModal';
 
 export type ViewScreen =
   | 'home'
@@ -24,7 +24,8 @@ export type ViewScreen =
   | 'completed-events'
   | 'event-details'
   | 'f-series'
-  | 's-series';
+  | 's-series'
+  | 'support';
 
 export default function App() {
   const [events, setEvents] = useState<EventItem[]>([]);
@@ -393,6 +394,7 @@ export default function App() {
     if (screen === 'home') return 'home';
     if (screen === 'create-event') return 'create';
     if (screen === 'completed-events') return 'completed';
+    if (screen === 'support') return 'support';
     return 'home';
   };
 
@@ -404,6 +406,8 @@ export default function App() {
       setCurrentScreen('create-event');
     } else if (tab === 'completed') {
       setCurrentScreen('completed-events');
+    } else if (tab === 'support') {
+      setCurrentScreen('support');
     } else if (tab === 'supabase') {
       setIsSupabaseModalOpen(true);
     }
@@ -417,7 +421,7 @@ export default function App() {
         onSelectTab={handleSelectNavTab}
         isSupabaseConnected={isSupabaseConnected}
         onOpenSupabaseModal={() => setIsSupabaseModalOpen(true)}
-        onOpenSupportModal={() => setIsSupportModalOpen(true)}
+        onOpenSupportModal={() => setCurrentScreen('support')}
       />
 
       {/* Main Screen Container - Responsive max-w-7xl */}
@@ -503,6 +507,10 @@ export default function App() {
             onBack={() => setCurrentScreen('event-details')}
           />
         )}
+
+        {currentScreen === 'support' && (
+          <SupportView onBack={() => setCurrentScreen('home')} />
+        )}
       </main>
 
       {/* Supabase Sync & Backup Modal */}
@@ -512,12 +520,6 @@ export default function App() {
         onSync={() => syncWithSupabase()}
         onExportData={handleExportData}
         onImportData={handleImportData}
-      />
-
-      {/* Developer & Customer Support Modal */}
-      <ContactSupportModal
-        isOpen={isSupportModalOpen}
-        onClose={() => setIsSupportModalOpen(false)}
       />
     </div>
   );

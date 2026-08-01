@@ -30,8 +30,8 @@ export const Navigation: React.FC<NavigationProps> = ({
           >
             <div className="w-11 h-11 rounded-2xl bg-[#ffffff] border border-[#e9e0e4] p-1 flex items-center justify-center shadow-md group-hover:scale-105 transition-transform overflow-hidden">
               <img
-                src="agenerativeslicelogo.jpg"
-                alt="A Generative Slice Logo"
+                src="velvettrunklogo.png"
+                alt="The Velvet Trunk Logo"
                 className="w-full h-full object-contain rounded-xl"
                 onError={(e) => {
                   (e.target as HTMLElement).style.display = 'none';

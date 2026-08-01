@@ -28,8 +28,8 @@ export const HomeView: React.FC<HomeViewProps> = ({
 
         <div className="w-20 h-20 rounded-2xl bg-[#ffffff] p-1.5 shadow-lg border border-white/20 shrink-0 flex items-center justify-center overflow-hidden">
           <img
-            src="agenerativeslicelogo.jpg"
-            alt="A Generative Slice Logo"
+            src="velvettrunklogo.png"
+            alt="The Velvet Trunk Logo"
             className="w-full h-full object-contain rounded-xl"
             onError={(e) => {
               (e.target as HTMLElement).style.display = 'none';
