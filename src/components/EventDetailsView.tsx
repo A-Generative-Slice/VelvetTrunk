@@ -69,7 +69,7 @@ export const EventDetailsView: React.FC<EventDetailsViewProps> = ({
   };
 
   return (
-    <div className="flex flex-col gap-5 pb-28 max-w-md mx-auto">
+    <div className="flex flex-col gap-6 pb-12 w-full max-w-6xl mx-auto">
       {/* Top Header Navigation */}
       <div className="flex items-center justify-between pt-2">
         <button

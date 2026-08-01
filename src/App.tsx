@@ -9,8 +9,7 @@ import {
   getSupabaseConfig,
 } from './lib/storage';
 
-import { Header } from './components/Header';
-import { BottomNav, NavTab } from './components/BottomNav';
+import { Navigation, NavTab } from './components/Navigation';
 import { HomeView } from './components/HomeView';
 import { CreateEventView } from './components/CreateEventView';
 import { CompletedEventsView } from './components/CompletedEventsView';
@@ -388,15 +387,16 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-[#fff7fa] text-[#1e1a1d] font-['Manrope',sans-serif]">
-      {/* Fixed Top Header */}
-      <Header
-        onOpenSupabaseModal={() => setIsSupabaseModalOpen(true)}
+      {/* Navigation Header (Desktop Navbar & Mobile Bottom Bar) */}
+      <Navigation
+        currentTab={getNavTabFromScreen(currentScreen)}
+        onSelectTab={handleSelectNavTab}
         isSupabaseConnected={isSupabaseConnected}
-        onGoHome={() => setCurrentScreen('home')}
+        onOpenSupabaseModal={() => setIsSupabaseModalOpen(true)}
       />
 
-      {/* Main Screen Container */}
-      <main className="pt-20 px-4 max-w-md mx-auto">
+      {/* Main Screen Container - Responsive max-w-7xl */}
+      <main className="pt-4 md:pt-6 pb-24 md:pb-12 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto min-h-screen">
         {currentScreen === 'home' && (
           <HomeView
             events={events}
@@ -487,12 +487,6 @@ export default function App() {
         onSync={() => syncWithSupabase(events, bookings)}
         onExportData={handleExportData}
         onImportData={handleImportData}
-      />
-
-      {/* Floating PWA Bottom Navigation */}
-      <BottomNav
-        currentTab={getNavTabFromScreen(currentScreen)}
-        onSelectTab={handleSelectNavTab}
       />
     </div>
   );
