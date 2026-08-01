@@ -18,6 +18,8 @@ import {
   AlertTriangle,
   XCircle,
   Maximize2,
+  ZoomIn,
+  ZoomOut,
   X,
   RotateCcw,
   Sparkles,
@@ -48,6 +50,7 @@ export const EventDetailsView: React.FC<EventDetailsViewProps> = ({
   onBack,
 }) => {
   const [isLayoutModalOpen, setIsLayoutModalOpen] = useState(false);
+  const [zoomScale, setZoomScale] = useState(1);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isExportingPdf, setIsExportingPdf] = useState(false);
   const [exportSuccessMsg, setExportSuccessMsg] = useState('');
@@ -362,14 +365,17 @@ export const EventDetailsView: React.FC<EventDetailsViewProps> = ({
         </div>
       </div>
 
-      {/* VIEW THE LAYOUT JPG IMAGE */}
+      {/* VIEW THE LAYOUT FLOOR PLAN */}
       <div className="bg-[#ffffff] rounded-2xl border border-[#e9e0e4] p-4 shadow-xs space-y-3">
         <div className="flex items-center justify-between">
           <h2 className="text-xs font-extrabold text-[#491546] uppercase tracking-wider flex items-center gap-1.5">
-            <Maximize2 className="w-4 h-4 text-[#904277]" /> Event Layout Map (JPG)
+            <Maximize2 className="w-4 h-4 text-[#904277]" /> Exhibition Layout Plan
           </h2>
           <button
-            onClick={() => setIsLayoutModalOpen(true)}
+            onClick={() => {
+              setZoomScale(1);
+              setIsLayoutModalOpen(true);
+            }}
             className="text-xs font-bold text-[#491546] hover:underline flex items-center gap-1"
           >
             <Maximize2 className="w-3.5 h-3.5" /> Fullscreen View
@@ -377,50 +383,119 @@ export const EventDetailsView: React.FC<EventDetailsViewProps> = ({
         </div>
 
         <div
-          onClick={() => setIsLayoutModalOpen(true)}
+          onClick={() => {
+            setZoomScale(1);
+            setIsLayoutModalOpen(true);
+          }}
           className="w-full h-52 bg-[#faf1f5] rounded-xl overflow-hidden border border-[#d2c2cc] relative cursor-pointer group"
         >
           <img
             src={event.layoutImageUrl}
-            alt="Event Layout JPG"
+            alt="Event Layout Floor Plan"
             className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300"
           />
           <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-bold gap-1.5">
-            <Maximize2 className="w-4 h-4" /> Click to enlarge layout
+            <Maximize2 className="w-4 h-4" /> Click to enlarge & zoom layout
           </div>
         </div>
       </div>
 
-      {/* FULLSCREEN LAYOUT MODAL */}
+      {/* FULLSCREEN INTERACTIVE LAYOUT MODAL WITH ZOOM & PAN */}
       {isLayoutModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="bg-[#fff7fa] rounded-2xl max-w-lg w-full p-4 max-h-[90vh] flex flex-col gap-3 relative overflow-hidden">
-            <div className="flex items-center justify-between border-b border-[#e9e0e4] pb-2">
-              <h3 className="font-bold text-sm text-[#491546]">
-                {event.name} - Floor Plan Layout
-              </h3>
-              <button
-                onClick={() => setIsLayoutModalOpen(false)}
-                className="w-8 h-8 rounded-full bg-[#e9e0e4] text-[#491546] flex items-center justify-center font-bold"
+        <div className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-2 sm:p-4">
+          <div className="bg-[#1e1a1d] text-white rounded-3xl max-w-5xl w-full h-[92vh] flex flex-col border border-white/10 shadow-2xl overflow-hidden animate-scaleUp">
+            {/* Header with Title and Control Buttons */}
+            <div className="p-4 bg-[#2a2428] border-b border-white/10 flex items-center justify-between gap-3">
+              <div>
+                <h3 className="font-extrabold text-base text-white flex items-center gap-2">
+                  <Maximize2 className="w-4 h-4 text-[#fea0db]" />
+                  <span>{event.name} - Floor Plan Layout</span>
+                </h3>
+                <p className="text-xs text-white/60">
+                  Use zoom controls to inspect stall numbers in high detail
+                </p>
+              </div>
+
+              {/* Zoom Control Buttons Toolbar */}
+              <div className="flex items-center gap-1.5 bg-black/40 backdrop-blur-md p-1.5 rounded-2xl border border-white/10">
+                <button
+                  type="button"
+                  onClick={() => setZoomScale((prev) => Math.max(prev - 0.25, 0.5))}
+                  disabled={zoomScale <= 0.5}
+                  className="p-2 rounded-xl bg-white/10 hover:bg-white/20 disabled:opacity-30 disabled:pointer-events-none text-white transition-all active:scale-95"
+                  title="Zoom Out (-)"
+                >
+                  <ZoomOut className="w-4 h-4" />
+                </button>
+
+                <span className="px-2 text-xs font-black text-[#fea0db] min-w-[45px] text-center">
+                  {Math.round(zoomScale * 100)}%
+                </span>
+
+                <button
+                  type="button"
+                  onClick={() => setZoomScale((prev) => Math.min(prev + 0.25, 4))}
+                  disabled={zoomScale >= 4}
+                  className="p-2 rounded-xl bg-white/10 hover:bg-white/20 disabled:opacity-30 disabled:pointer-events-none text-white transition-all active:scale-95"
+                  title="Zoom In (+)"
+                >
+                  <ZoomIn className="w-4 h-4" />
+                </button>
+
+                <div className="w-px h-5 bg-white/20 my-auto mx-0.5"></div>
+
+                <button
+                  type="button"
+                  onClick={() => setZoomScale(1)}
+                  className="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white transition-all active:scale-95"
+                  title="Reset Zoom (100%)"
+                >
+                  <RotateCcw className="w-4 h-4" />
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsLayoutModalOpen(false);
+                    setZoomScale(1);
+                  }}
+                  className="p-2 rounded-xl bg-red-500/80 hover:bg-red-600 text-white transition-all active:scale-95 ml-1"
+                  title="Close Fullscreen View"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+
+            {/* Zoomable Image Container */}
+            <div className="flex-1 overflow-auto p-4 flex items-center justify-center bg-black/60 relative cursor-grab active:cursor-grabbing">
+              <div
+                className="transition-transform duration-200 ease-out flex items-center justify-center"
+                style={{ transform: `scale(${zoomScale})` }}
               >
-                <X className="w-5 h-5" />
+                <img
+                  src={event.layoutImageUrl}
+                  alt="Event Layout Floor Plan"
+                  className="max-w-full max-h-[75vh] object-contain rounded-xl shadow-2xl select-none"
+                  draggable={false}
+                />
+              </div>
+            </div>
+
+            {/* Footer Info Strip */}
+            <div className="p-3 bg-[#2a2428] border-t border-white/10 flex items-center justify-between text-xs text-white/70">
+              <span>Use + / - buttons to zoom up to 400% for fine details.</span>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsLayoutModalOpen(false);
+                  setZoomScale(1);
+                }}
+                className="px-4 py-1.5 bg-[#491546] hover:bg-[#632c5e] text-white font-bold rounded-xl text-xs"
+              >
+                Close Preview
               </button>
             </div>
-
-            <div className="flex-1 overflow-auto bg-[#faf1f5] rounded-xl p-2 min-h-[300px] flex items-center justify-center">
-              <img
-                src={event.layoutImageUrl}
-                alt="Event Layout Full"
-                className="max-w-full max-h-[70vh] object-contain rounded-lg"
-              />
-            </div>
-
-            <button
-              onClick={() => setIsLayoutModalOpen(false)}
-              className="w-full py-2.5 bg-[#491546] text-white text-xs font-bold rounded-xl"
-            >
-              Close Floor Plan
-            </button>
           </div>
         </div>
       )}
