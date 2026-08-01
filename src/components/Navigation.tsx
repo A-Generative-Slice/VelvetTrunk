@@ -1,13 +1,14 @@
 import React from 'react';
-import { Home, PlusCircle, CheckCircle2, Database, Store, Sparkles } from 'lucide-react';
+import { Home, PlusCircle, CheckCircle2, Database, Store, Sparkles, Headphones } from 'lucide-react';
 
-export type NavTab = 'home' | 'create' | 'completed' | 'supabase';
+export type NavTab = 'home' | 'create' | 'completed' | 'support' | 'supabase';
 
 interface NavigationProps {
   currentTab: NavTab;
   onSelectTab: (tab: NavTab) => void;
   isSupabaseConnected: boolean;
   onOpenSupabaseModal: () => void;
+  onOpenSupportModal: () => void;
 }
 
 export const Navigation: React.FC<NavigationProps> = ({
@@ -15,6 +16,7 @@ export const Navigation: React.FC<NavigationProps> = ({
   onSelectTab,
   isSupabaseConnected,
   onOpenSupabaseModal,
+  onOpenSupportModal,
 }) => {
   return (
     <>
@@ -79,6 +81,14 @@ export const Navigation: React.FC<NavigationProps> = ({
               <CheckCircle2 className="w-4 h-4" />
               <span>Completed Events</span>
             </button>
+
+            <button
+              onClick={onOpenSupportModal}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold text-[#4f434c] hover:bg-[#f4ecef] hover:text-[#491546] transition-all"
+            >
+              <Headphones className="w-4 h-4 text-[#904277]" />
+              <span>Support</span>
+            </button>
           </div>
 
           {/* DB Sync & Supabase Status Button */}
@@ -137,15 +147,11 @@ export const Navigation: React.FC<NavigationProps> = ({
           </button>
 
           <button
-            onClick={() => onSelectTab('supabase')}
-            className={`flex flex-col items-center justify-center py-1 px-3 rounded-2xl transition-all ${
-              currentTab === 'supabase'
-                ? 'text-[#491546] font-bold scale-105'
-                : 'text-[#81737c] hover:text-[#491546]'
-            }`}
+            onClick={onOpenSupportModal}
+            className="flex flex-col items-center justify-center py-1 px-3 rounded-2xl transition-all text-[#81737c] hover:text-[#491546]"
           >
-            <Database className={`w-5 h-5 ${currentTab === 'supabase' ? 'stroke-[2.5]' : 'stroke-2'}`} />
-            <span className="text-[11px] font-medium tracking-wider uppercase mt-0.5">DB Sync</span>
+            <Headphones className="w-5 h-5 stroke-2 text-[#904277]" />
+            <span className="text-[11px] font-medium tracking-wider uppercase mt-0.5">Support</span>
           </button>
         </div>
       </nav>

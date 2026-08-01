@@ -16,6 +16,7 @@ import { CompletedEventsView } from './components/CompletedEventsView';
 import { EventDetailsView } from './components/EventDetailsView';
 import { SeriesStallsView } from './components/SeriesStallsView';
 import { SupabaseModal } from './components/SupabaseModal';
+import { ContactSupportModal } from './components/ContactSupportModal';
 
 export type ViewScreen =
   | 'home'
@@ -34,6 +35,7 @@ export default function App() {
   const [editingEventItem, setEditingEventItem] = useState<EventItem | null>(null);
 
   const [isSupabaseModalOpen, setIsSupabaseModalOpen] = useState(false);
+  const [isSupportModalOpen, setIsSupportModalOpen] = useState(false);
   const [isSupabaseConnected, setIsSupabaseConnected] = useState(false);
 
   // Initial Load from local persistence
@@ -393,6 +395,7 @@ export default function App() {
         onSelectTab={handleSelectNavTab}
         isSupabaseConnected={isSupabaseConnected}
         onOpenSupabaseModal={() => setIsSupabaseModalOpen(true)}
+        onOpenSupportModal={() => setIsSupportModalOpen(true)}
       />
 
       {/* Main Screen Container - Responsive max-w-7xl */}
@@ -487,6 +490,12 @@ export default function App() {
         onSync={() => syncWithSupabase(events, bookings)}
         onExportData={handleExportData}
         onImportData={handleImportData}
+      />
+
+      {/* Developer & Customer Support Modal */}
+      <ContactSupportModal
+        isOpen={isSupportModalOpen}
+        onClose={() => setIsSupportModalOpen(false)}
       />
     </div>
   );

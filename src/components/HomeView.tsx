@@ -1,7 +1,7 @@
 import React from 'react';
 import { EventItem, VendorBooking } from '../types';
 import { calculateEventDashboardStats } from '../lib/storage';
-import { Plus, Archive, Calendar, MapPin, Store, Sparkles, ChevronRight, Layers } from 'lucide-react';
+import { Plus, Archive, Calendar, MapPin, Store, Sparkles, ChevronRight } from 'lucide-react';
 
 interface HomeViewProps {
   events: EventItem[];
@@ -21,54 +21,32 @@ export const HomeView: React.FC<HomeViewProps> = ({
   const activeEvents = events.filter((e) => !e.isCompleted);
 
   return (
-    <div className="flex flex-col gap-8 pb-12">
-      {/* Top Logo & Hero Brand Section */}
-      <div className="bg-gradient-to-r from-[#491546] via-[#632c5e] to-[#904277] rounded-3xl p-6 sm:p-8 text-white shadow-xl shadow-[#491546]/10 relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-6">
-        <div className="absolute right-0 top-0 bottom-0 w-1/2 bg-white/5 skew-x-12 pointer-events-none"></div>
-        
-        <div className="flex items-center gap-5 text-center md:text-left z-10">
-          <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-[#fff7fa] p-1.5 shadow-lg shrink-0 flex items-center justify-center">
-            <div className="w-full h-full bg-gradient-to-br from-[#faf1f5] to-[#f4ecef] rounded-xl flex flex-col items-center justify-center text-[#491546]">
-              <Store className="w-10 h-10 stroke-[2.2]" />
-            </div>
-          </div>
-          <div>
-            <div className="flex items-center justify-center md:justify-start gap-2">
-              <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
-                The Velvet Trunk
-              </h1>
-              <Sparkles className="w-5 h-5 text-[#fea0db]" />
-            </div>
-            <p className="text-sm sm:text-base text-[#ffd7f5] font-medium max-w-lg mt-1 leading-snug">
-              Boutique Event Management, Stall Allocations & Financial Concierge.
-            </p>
+    <div className="flex flex-col gap-6 pb-12">
+      {/* Simple Clean Logo & Text Box (No repeated buttons) */}
+      <div className="bg-gradient-to-r from-[#491546] via-[#632c5e] to-[#904277] rounded-3xl p-6 text-white shadow-lg shadow-[#491546]/10 relative overflow-hidden flex flex-col sm:flex-row items-center gap-5 text-center sm:text-left">
+        <div className="absolute right-0 top-0 bottom-0 w-1/3 bg-white/5 skew-x-12 pointer-events-none"></div>
+
+        <div className="w-20 h-20 rounded-2xl bg-[#fff7fa] p-1.5 shadow-md shrink-0 flex items-center justify-center">
+          <div className="w-full h-full bg-gradient-to-br from-[#faf1f5] to-[#f4ecef] rounded-xl flex flex-col items-center justify-center text-[#491546]">
+            <Store className="w-9 h-9 stroke-[2.2]" />
           </div>
         </div>
 
-        {/* Action Buttons inside Hero Banner for Desktop */}
-        <div className="flex items-center gap-3 w-full md:w-auto z-10">
-          <button
-            onClick={onCreateEventClick}
-            className="flex-1 md:flex-initial px-5 py-3.5 rounded-2xl bg-white text-[#491546] font-bold text-sm shadow-md hover:bg-[#fff7fa] active:scale-95 transition-all flex items-center justify-center gap-2 group"
-          >
-            <div className="w-7 h-7 rounded-lg bg-[#491546] text-white flex items-center justify-center group-hover:scale-110 transition-transform">
-              <Plus className="w-4 h-4 stroke-[3]" />
-            </div>
-            <span>Create Event</span>
-          </button>
-
-          <button
-            onClick={onCompletedEventsClick}
-            className="flex-1 md:flex-initial px-5 py-3.5 rounded-2xl bg-white/15 backdrop-blur-md text-white border border-white/20 font-bold text-sm hover:bg-white/25 active:scale-95 transition-all flex items-center justify-center gap-2"
-          >
-            <Archive className="w-4 h-4 text-[#fea0db]" />
-            <span>Archives</span>
-          </button>
+        <div className="z-10">
+          <div className="flex items-center justify-center sm:justify-start gap-2">
+            <h1 className="text-2xl font-extrabold tracking-tight">
+              The Velvet Trunk
+            </h1>
+            <Sparkles className="w-4 h-4 text-[#fea0db]" />
+          </div>
+          <p className="text-xs sm:text-sm text-[#ffd7f5] font-medium mt-1 leading-relaxed">
+            Boutique Event Management, Stall Allocations & Financial Concierge.
+          </p>
         </div>
       </div>
 
-      {/* Quick Access Action Cards (Mobile View) */}
-      <div className="grid grid-cols-2 gap-4 md:hidden">
+      {/* Main Action Cards (Rendered Once, No Duplicates) */}
+      <div className="grid grid-cols-2 gap-4">
         <button
           onClick={onCreateEventClick}
           className="flex flex-col items-center justify-center gap-3 p-5 rounded-2xl bg-[#ffffff] border border-[#f4ecef] shadow-xs hover:shadow-md transition-all active:scale-95 text-center group"
@@ -105,7 +83,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
       </div>
 
       {/* Current & Upcoming Events Section */}
-      <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-4 mt-2">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <div className="w-3 h-3 rounded-full bg-[#904277] animate-pulse"></div>
@@ -119,7 +97,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
         </div>
 
         {activeEvents.length === 0 ? (
-          <div className="bg-[#ffffff] rounded-3xl p-10 text-center border border-[#e9e0e4] flex flex-col items-center gap-4 shadow-xs max-w-xl mx-auto w-full my-4">
+          <div className="bg-[#ffffff] rounded-3xl p-10 text-center border border-[#e9e0e4] flex flex-col items-center gap-4 shadow-xs max-w-xl mx-auto w-full my-2">
             <div className="w-16 h-16 rounded-2xl bg-[#faf1f5] flex items-center justify-center text-[#904277]">
               <Calendar className="w-8 h-8" />
             </div>
