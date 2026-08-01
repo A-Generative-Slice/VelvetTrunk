@@ -7,7 +7,7 @@ import {
   StallCategory,
   PaymentStatus,
 } from '../types';
-import { calculatePaymentStatus } from '../lib/storage';
+import { calculatePaymentStatus, formatDatePretty } from '../lib/storage';
 import {
   ArrowLeft,
   Plus,
@@ -28,6 +28,11 @@ import {
   CreditCard,
   QrCode,
   Sparkles,
+  Receipt,
+  MessageSquare,
+  ChevronRight,
+  Info,
+  Clock,
 } from 'lucide-react';
 
 interface SeriesStallsViewProps {
@@ -67,7 +72,6 @@ export const SeriesStallsView: React.FC<SeriesStallsViewProps> = ({
   onBack,
 }) => {
   const isF = series === 'F';
-  const seriesTitle = isF ? 'F Series (Front Pavilion)' : 'S Series (VIP Select)';
   const limit = isF ? event.fSeriesLimit : event.sSeriesLimit;
 
   // Filter bookings for this event and this specific series
@@ -79,19 +83,22 @@ export const SeriesStallsView: React.FC<SeriesStallsViewProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('All');
 
-  // Modal / Form State for Add or Edit
+  // Modal State for Add or Edit Form
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingBooking, setEditingBooking] = useState<VendorBooking | null>(null);
 
-  // Form Fields
+  // Modal State for Viewing Detailed Stall Information & Payment Logs
+  const [viewingBookingDetails, setViewingBookingDetails] = useState<VendorBooking | null>(null);
+
+  // Form Fields (Empty defaults for clean entry)
   const [exhibitorName, setExhibitorName] = useState('');
   const [stallName, setStallName] = useState('');
   const [mobileNumber, setMobileNumber] = useState('');
   const [stallNumber, setStallNumber] = useState('');
-  const [bookingDate, setBookingDate] = useState('2026-07-29');
+  const [bookingDate, setBookingDate] = useState('');
   const [stallCategory, setStallCategory] = useState<string>('Clothing & Apparel');
-  const [stallRent, setStallRent] = useState<number | ''>(25000);
-  const [stallAdvance, setStallAdvance] = useState<number | ''>(15000);
+  const [stallRent, setStallRent] = useState<number | ''>('');
+  const [stallAdvance, setStallAdvance] = useState<number | ''>('');
   const [paymentMode, setPaymentMode] = useState<PaymentMode>('UPI / QR Code');
   const [notes, setNotes] = useState('');
   const [formError, setFormError] = useState('');
@@ -107,13 +114,15 @@ export const SeriesStallsView: React.FC<SeriesStallsViewProps> = ({
     setExhibitorName('');
     setStallName('');
     setMobileNumber('');
-    // Auto generate default stall number like F-01 or S-01 based on current count
+
+    // Pre-fill stall number digit only (e.g. "01", "02")
     const nextNum = (seriesBookings.length + 1).toString().padStart(2, '0');
-    setStallNumber(`${series}-${nextNum}`);
+    setStallNumber(nextNum);
+
     setBookingDate(new Date().toISOString().split('T')[0]);
     setStallCategory('Clothing & Apparel');
-    setStallRent(series === 'S' ? 45000 : 25000);
-    setStallAdvance(series === 'S' ? 25000 : 15000);
+    setStallRent(''); // Completely empty fill box
+    setStallAdvance(''); // Completely empty fill box
     setPaymentMode('UPI / QR Code');
     setNotes('');
     setFormError('');
@@ -125,7 +134,11 @@ export const SeriesStallsView: React.FC<SeriesStallsViewProps> = ({
     setExhibitorName(booking.exhibitorName);
     setStallName(booking.stallName);
     setMobileNumber(booking.mobileNumber);
-    setStallNumber(booking.stallNumber);
+
+    // Strip series prefix (e.g. "F-02" -> "02") for clean numeric edit input
+    const numPart = booking.stallNumber.replace(new RegExp(`^${series}-`, 'i'), '');
+    setStallNumber(numPart || booking.stallNumber);
+
     setBookingDate(booking.bookingDate);
     setStallCategory(booking.stallCategory);
     setStallRent(booking.stallRent);
@@ -155,16 +168,27 @@ export const SeriesStallsView: React.FC<SeriesStallsViewProps> = ({
       return;
     }
 
+    // Format full stall number with series prefix (e.g. "F-02")
+    let rawNum = stallNumber.trim();
+    let formattedStallNum = rawNum;
+    if (!rawNum.toUpperCase().startsWith(`${series}-`)) {
+      const numOnly = rawNum.replace(/\D/g, '');
+      const padded = numOnly ? numOnly.padStart(2, '0') : rawNum;
+      formattedStallNum = `${series}-${padded}`;
+    } else {
+      formattedStallNum = rawNum.toUpperCase();
+    }
+
     // Check duplicate stall number in this event
     const duplicate = bookings.find(
       (b) =>
         b.eventId === event.id &&
-        b.stallNumber.toLowerCase() === stallNumber.trim().toLowerCase() &&
+        b.stallNumber.toLowerCase() === formattedStallNum.toLowerCase() &&
         b.id !== editingBooking?.id
     );
 
     if (duplicate) {
-      setFormError(`Stall number "${stallNumber}" is already booked for ${duplicate.exhibitorName}!`);
+      setFormError(`Stall number "${formattedStallNum}" is already booked for ${duplicate.exhibitorName}!`);
       return;
     }
 
@@ -175,7 +199,7 @@ export const SeriesStallsView: React.FC<SeriesStallsViewProps> = ({
         exhibitorName: exhibitorName.trim(),
         stallName: stallName.trim(),
         mobileNumber: mobileNumber.trim(),
-        stallNumber: stallNumber.trim().toUpperCase(),
+        stallNumber: formattedStallNum,
         bookingDate,
         stallCategory,
         stallRent: rentVal,
@@ -233,7 +257,7 @@ export const SeriesStallsView: React.FC<SeriesStallsViewProps> = ({
           <div>
             <div className="flex items-center gap-1.5">
               <span
-                className={`px-2 py-0.5 rounded-md text-[11px] font-extrabold text-white uppercase ${
+                className={`px-2.5 py-0.5 rounded-md text-[11px] font-extrabold text-white uppercase ${
                   isF ? 'bg-[#632c5e]' : 'bg-[#904277]'
                 }`}
               >
@@ -338,7 +362,7 @@ export const SeriesStallsView: React.FC<SeriesStallsViewProps> = ({
         </div>
       </div>
 
-      {/* Vendor List */}
+      {/* Vendor List Cards (Clicking card opens Stall Details & Payment Log Modal) */}
       <div className="flex flex-col gap-3">
         {filteredBookings.length === 0 ? (
           <div className="bg-[#ffffff] p-8 text-center rounded-2xl border border-[#e9e0e4] text-[#81737c] space-y-3">
@@ -368,7 +392,8 @@ export const SeriesStallsView: React.FC<SeriesStallsViewProps> = ({
           filteredBookings.map((b) => (
             <div
               key={b.id}
-              className="bg-[#ffffff] rounded-2xl border border-[#e9e0e4] p-4 shadow-2xs hover:shadow-xs transition-all space-y-3"
+              onClick={() => setViewingBookingDetails(b)}
+              className="bg-[#ffffff] rounded-2xl border border-[#e9e0e4] p-4 shadow-2xs hover:shadow-md hover:border-[#904277]/50 transition-all space-y-3 cursor-pointer group"
             >
               {/* Header with Stall Number and Payment Status */}
               <div className="flex items-start justify-between gap-2">
@@ -381,7 +406,7 @@ export const SeriesStallsView: React.FC<SeriesStallsViewProps> = ({
                       {b.stallCategory}
                     </span>
                   </div>
-                  <h3 className="font-extrabold text-base text-[#1e1a1d] leading-tight">
+                  <h3 className="font-extrabold text-base text-[#1e1a1d] leading-tight group-hover:text-[#491546] transition-colors">
                     {b.stallName}
                   </h3>
                   <p className="text-xs text-[#4f434c] font-medium flex items-center gap-1 mt-0.5">
@@ -389,7 +414,7 @@ export const SeriesStallsView: React.FC<SeriesStallsViewProps> = ({
                   </p>
                 </div>
 
-                {/* Status Pill */}
+                {/* Status Badge */}
                 <div
                   className={`px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wider flex items-center gap-1 shrink-0 ${
                     b.calculatedStatus === 'Paid'
@@ -406,22 +431,19 @@ export const SeriesStallsView: React.FC<SeriesStallsViewProps> = ({
                 </div>
               </div>
 
-              {/* Contact & Date */}
+              {/* Contact & Booking Date */}
               <div className="grid grid-cols-2 gap-2 text-xs text-[#4f434c] bg-[#faf1f5]/70 p-2.5 rounded-xl">
-                <a
-                  href={`tel:${b.mobileNumber}`}
-                  className="flex items-center gap-1.5 font-bold text-[#491546] hover:underline"
-                >
+                <div className="flex items-center gap-1.5 font-bold text-[#491546]">
                   <Phone className="w-3.5 h-3.5 text-[#904277]" />
                   <span>{b.mobileNumber}</span>
-                </a>
+                </div>
                 <div className="flex items-center gap-1.5 text-[#81737c] justify-end">
                   <Calendar className="w-3.5 h-3.5 text-[#904277]" />
-                  <span>Booked: {b.bookingDate}</span>
+                  <span>{formatDatePretty(b.bookingDate)}</span>
                 </div>
               </div>
 
-              {/* Financial Rent Breakdown */}
+              {/* Financial Rent Summary */}
               <div className="grid grid-cols-3 gap-2 text-center text-xs pt-1 border-t border-[#f4ecef]">
                 <div>
                   <span className="text-[10px] text-[#81737c] font-bold uppercase block">
@@ -449,26 +471,15 @@ export const SeriesStallsView: React.FC<SeriesStallsViewProps> = ({
                 </div>
               </div>
 
-              {/* Payment Mode & Action Buttons */}
-              <div className="flex items-center justify-between pt-1 text-xs">
-                <div className="text-[11px] text-[#81737c] font-medium flex items-center gap-1">
+              {/* Tap to View Details Footer Badge (Replaces direct Edit/Delete buttons) */}
+              <div className="flex items-center justify-between pt-1 border-t border-[#f4ecef] text-[11px] text-[#904277] font-extrabold">
+                <div className="flex items-center gap-1 text-[#81737c] font-medium">
                   <CreditCard className="w-3.5 h-3.5 text-[#904277]" />
                   <span>{b.paymentMode}</span>
                 </div>
-
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => openEditModal(b)}
-                    className="p-1.5 rounded-lg bg-[#faf1f5] border border-[#d2c2cc] text-[#491546] hover:bg-[#e9e0e4] active:scale-95 transition-all flex items-center gap-1 text-[11px] font-bold"
-                  >
-                    <Edit2 className="w-3.5 h-3.5" /> Edit
-                  </button>
-                  <button
-                    onClick={() => onDeleteBooking(b.id)}
-                    className="p-1.5 rounded-lg bg-red-50 border border-red-200 text-red-600 hover:bg-red-100 active:scale-95 transition-all flex items-center gap-1 text-[11px] font-bold"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" /> Delete
-                  </button>
+                <div className="flex items-center gap-1 text-[#491546] font-bold group-hover:translate-x-0.5 transition-transform">
+                  <span>View Details & Payment Log</span>
+                  <ChevronRight className="w-3.5 h-3.5" />
                 </div>
               </div>
             </div>
@@ -476,7 +487,163 @@ export const SeriesStallsView: React.FC<SeriesStallsViewProps> = ({
         )}
       </div>
 
-      {/* ADD / EDIT VENDOR MODAL */}
+      {/* DETAILED STALL INFORMATION & PAYMENT LOG MODAL */}
+      {viewingBookingDetails && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-3">
+          <div className="bg-[#ffffff] rounded-2xl max-w-md w-full max-h-[92vh] flex flex-col border border-[#e9e0e4] shadow-2xl overflow-hidden animate-scaleUp">
+            {/* Modal Header */}
+            <div className="p-4 bg-[#491546] text-white flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="px-2.5 py-1 rounded-md bg-[#fea0db] text-[#491546] font-black text-xs uppercase tracking-wider">
+                  STALL {viewingBookingDetails.stallNumber}
+                </span>
+                <div>
+                  <h3 className="font-extrabold text-sm text-white leading-tight">
+                    {viewingBookingDetails.stallName}
+                  </h3>
+                  <p className="text-[11px] text-[#fea0db]">{viewingBookingDetails.exhibitorName}</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setViewingBookingDetails(null)}
+                className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center font-bold"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-4 overflow-y-auto flex-1 space-y-4 text-xs">
+              {/* Exhibitor Details Card */}
+              <div className="bg-[#faf1f5] rounded-xl p-3.5 space-y-2 border border-[#d2c2cc]/40">
+                <h4 className="text-[10px] font-extrabold uppercase tracking-wider text-[#491546] flex items-center gap-1.5">
+                  <User className="w-3.5 h-3.5 text-[#904277]" /> Exhibitor Contact Info
+                </h4>
+
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  <div>
+                    <span className="text-[10px] text-[#81737c] block">Category</span>
+                    <span className="font-extrabold text-[#1e1a1d]">{viewingBookingDetails.stallCategory}</span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-[#81737c] block">Booking Date</span>
+                    <span className="font-extrabold text-[#1e1a1d]">{formatDatePretty(viewingBookingDetails.bookingDate)}</span>
+                  </div>
+                </div>
+
+                <div className="pt-2 border-t border-[#d2c2cc]/40 flex items-center justify-between">
+                  <div className="flex items-center gap-1.5 font-bold text-[#491546]">
+                    <Phone className="w-3.5 h-3.5 text-[#904277]" />
+                    <span>{viewingBookingDetails.mobileNumber}</span>
+                  </div>
+                  <a
+                    href={`tel:${viewingBookingDetails.mobileNumber}`}
+                    className="px-3 py-1 bg-[#491546] text-white text-[11px] font-bold rounded-lg hover:bg-[#632c5e] active:scale-95 transition-all"
+                  >
+                    Call Exhibitor
+                  </a>
+                </div>
+              </div>
+
+              {/* Payment Log & Financial Breakdown */}
+              <div className="bg-[#ffffff] rounded-xl p-3.5 space-y-3 border border-[#e9e0e4] shadow-2xs">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-[10px] font-extrabold uppercase tracking-wider text-[#491546] flex items-center gap-1.5">
+                    <Receipt className="w-3.5 h-3.5 text-[#904277]" /> Payment Breakdown & Logs
+                  </h4>
+                  <span
+                    className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase ${
+                      viewingBookingDetails.calculatedStatus === 'Paid'
+                        ? 'bg-emerald-100 text-emerald-800'
+                        : viewingBookingDetails.calculatedStatus === 'Partial'
+                        ? 'bg-amber-100 text-amber-800'
+                        : 'bg-rose-100 text-rose-800'
+                    }`}
+                  >
+                    {viewingBookingDetails.calculatedStatus}
+                  </span>
+                </div>
+
+                <div className="space-y-2 text-xs">
+                  <div className="flex items-center justify-between py-1 border-b border-[#f4ecef]">
+                    <span className="text-[#81737c] font-medium">Total Agreed Rent:</span>
+                    <span className="font-extrabold text-[#491546] text-sm">
+                      ₹{viewingBookingDetails.stallRent.toLocaleString()}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between py-1 border-b border-[#f4ecef]">
+                    <span className="text-emerald-800 font-medium">Advance Paid Amount:</span>
+                    <span className="font-extrabold text-emerald-700 text-sm">
+                      ₹{viewingBookingDetails.stallAdvance.toLocaleString()}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between py-1 border-b border-[#f4ecef]">
+                    <span className="text-amber-800 font-medium">Remaining Pending Balance:</span>
+                    <span className="font-extrabold text-amber-700 text-sm">
+                      ₹{viewingBookingDetails.remainingBalance.toLocaleString()}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between py-1">
+                    <span className="text-[#81737c] font-medium">Payment Mode Used:</span>
+                    <span className="font-bold text-[#1e1a1d]">{viewingBookingDetails.paymentMode}</span>
+                  </div>
+                </div>
+
+                {/* Audit Log Timeline */}
+                <div className="p-2.5 bg-[#faf1f5] rounded-lg border border-[#e9e0e4] text-[11px] text-[#4f434c] space-y-1">
+                  <div className="flex items-center gap-1 font-bold text-[#491546]">
+                    <Clock className="w-3 h-3 text-[#904277]" />
+                    <span>Transaction History Log</span>
+                  </div>
+                  <p>
+                    • Booking logged on <span className="font-semibold">{formatDatePretty(viewingBookingDetails.bookingDate)}</span> via <span className="font-semibold">{viewingBookingDetails.paymentMode}</span>.
+                  </p>
+                  <p>
+                    • Initial deposit received: <span className="font-bold text-emerald-700">₹{viewingBookingDetails.stallAdvance.toLocaleString()}</span>.
+                  </p>
+                </div>
+              </div>
+
+              {viewingBookingDetails.notes && (
+                <div className="p-3 bg-[#fff7fa] rounded-xl border border-[#e9e0e4] space-y-1">
+                  <span className="text-[10px] font-extrabold uppercase text-[#81737c]">Internal Notes:</span>
+                  <p className="text-xs text-[#1e1a1d] italic">{viewingBookingDetails.notes}</p>
+                </div>
+              )}
+            </div>
+
+            {/* Modal Actions Footer: Edit & Delete Buttons Inside */}
+            <div className="p-3 bg-[#fff7fa] border-t border-[#e9e0e4] grid grid-cols-2 gap-2">
+              <button
+                onClick={() => {
+                  const target = viewingBookingDetails;
+                  setViewingBookingDetails(null);
+                  openEditModal(target);
+                }}
+                className="py-2.5 px-3 rounded-xl bg-[#faf1f5] border border-[#d2c2cc] text-[#491546] hover:bg-[#e9e0e4] active:scale-95 transition-all flex items-center justify-center gap-1.5 text-xs font-bold shadow-2xs"
+              >
+                <Edit2 className="w-4 h-4 text-[#904277]" /> Edit Booking
+              </button>
+
+              <button
+                onClick={() => {
+                  const id = viewingBookingDetails.id;
+                  setViewingBookingDetails(null);
+                  onDeleteBooking(id);
+                }}
+                className="py-2.5 px-3 rounded-xl bg-red-50 border border-red-200 text-red-600 hover:bg-red-100 active:scale-95 transition-all flex items-center justify-center gap-1.5 text-xs font-bold shadow-2xs"
+              >
+                <Trash2 className="w-4 h-4" /> Delete Booking
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ADD / EDIT VENDOR FORM MODAL */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-3">
           <div className="bg-[#ffffff] rounded-2xl max-w-md w-full max-h-[92vh] flex flex-col border border-[#e9e0e4] shadow-2xl overflow-hidden">
@@ -509,48 +676,48 @@ export const SeriesStallsView: React.FC<SeriesStallsViewProps> = ({
                 </div>
               )}
 
-              {/* 1. Exhibitor Name */}
+              {/* 1. Exhibitor Name (Clean Label) */}
               <div className="space-y-1">
                 <label className="font-bold uppercase tracking-wider text-[#491546]">
-                  Exhibitor Name (e.g. John Doe) *
+                  Exhibitor Name *
                 </label>
                 <input
                   type="text"
                   value={exhibitorName}
                   onChange={(e) => setExhibitorName(e.target.value)}
-                  placeholder="John Doe"
+                  placeholder="e.g. John Doe"
                   required
                   className="w-full px-3 py-2.5 bg-[#ffffff] border border-[#d2c2cc] rounded-xl text-xs font-semibold text-[#1e1a1d] focus:outline-hidden focus:border-[#491546]"
                 />
               </div>
 
-              {/* 2. Stall Name */}
+              {/* 2. Stall Name (Clean Label) */}
               <div className="space-y-1">
                 <label className="font-bold uppercase tracking-wider text-[#491546]">
-                  Stall Name (e.g. Classic Threads) *
+                  Stall Name *
                 </label>
                 <input
                   type="text"
                   value={stallName}
                   onChange={(e) => setStallName(e.target.value)}
-                  placeholder="Classic Threads"
+                  placeholder="e.g. Classic Threads"
                   required
                   className="w-full px-3 py-2.5 bg-[#ffffff] border border-[#d2c2cc] rounded-xl text-xs font-semibold text-[#1e1a1d] focus:outline-hidden focus:border-[#491546]"
                 />
               </div>
 
-              {/* 3. Mobile Number & Stall Number */}
+              {/* 3. Mobile Number & Stall Number (Numeric-Only with {series}- Prefix) */}
               <div className="grid grid-cols-2 gap-2.5">
                 <div className="space-y-1">
                   <label className="font-bold uppercase tracking-wider text-[#491546]">
-                    Mobile Number (10-Digit) *
+                    Mobile Number *
                   </label>
                   <input
                     type="tel"
                     maxLength={10}
                     value={mobileNumber}
                     onChange={(e) => setMobileNumber(e.target.value.replace(/\D/g, ''))}
-                    placeholder="9876543210"
+                    placeholder="e.g. 9876543210"
                     required
                     className="w-full px-3 py-2.5 bg-[#ffffff] border border-[#d2c2cc] rounded-xl text-xs font-semibold text-[#1e1a1d] focus:outline-hidden focus:border-[#491546]"
                   />
@@ -558,16 +725,21 @@ export const SeriesStallsView: React.FC<SeriesStallsViewProps> = ({
 
                 <div className="space-y-1">
                   <label className="font-bold uppercase tracking-wider text-[#491546]">
-                    Stall Number (Unique) *
+                    Stall Number *
                   </label>
-                  <input
-                    type="text"
-                    value={stallNumber}
-                    onChange={(e) => setStallNumber(e.target.value)}
-                    placeholder={`e.g. ${series}-04`}
-                    required
-                    className="w-full px-3 py-2.5 bg-[#ffffff] border border-[#d2c2cc] rounded-xl text-xs font-black uppercase text-[#491546] focus:outline-hidden focus:border-[#491546]"
-                  />
+                  <div className="relative flex items-center">
+                    <span className="absolute left-3 font-extrabold text-[#491546] text-xs">
+                      {series}-
+                    </span>
+                    <input
+                      type="text"
+                      value={stallNumber}
+                      onChange={(e) => setStallNumber(e.target.value.replace(/\D/g, ''))}
+                      placeholder="01"
+                      required
+                      className="w-full pl-8 pr-3 py-2.5 bg-[#ffffff] border border-[#d2c2cc] rounded-xl text-xs font-black text-[#491546] focus:outline-hidden focus:border-[#491546]"
+                    />
+                  </div>
                 </div>
               </div>
 
@@ -604,11 +776,11 @@ export const SeriesStallsView: React.FC<SeriesStallsViewProps> = ({
                 </div>
               </div>
 
-              {/* 5. Stall Rent & Stall Cost Advance */}
+              {/* 5. Stall Rent & Stall Cost Advance (Clean Labels & Empty Fill Boxes) */}
               <div className="grid grid-cols-2 gap-2.5 pt-1">
                 <div className="space-y-1">
                   <label className="font-bold uppercase tracking-wider text-[#491546]">
-                    Stall Rent (Amount) ₹ *
+                    Stall Rent (₹) *
                   </label>
                   <input
                     type="number"
@@ -617,7 +789,7 @@ export const SeriesStallsView: React.FC<SeriesStallsViewProps> = ({
                     onChange={(e) =>
                       setStallRent(e.target.value === '' ? '' : Number(e.target.value))
                     }
-                    placeholder="25000"
+                    placeholder="Enter rent amount"
                     required
                     className="w-full px-3 py-2.5 bg-[#ffffff] border border-[#d2c2cc] rounded-xl text-xs font-bold text-[#1e1a1d] focus:outline-hidden focus:border-[#491546]"
                   />
@@ -625,7 +797,7 @@ export const SeriesStallsView: React.FC<SeriesStallsViewProps> = ({
 
                 <div className="space-y-1">
                   <label className="font-bold uppercase tracking-wider text-emerald-800">
-                    Stall Cost Advance (Paid) ₹
+                    Stall Cost Advance (₹)
                   </label>
                   <input
                     type="number"
@@ -634,7 +806,7 @@ export const SeriesStallsView: React.FC<SeriesStallsViewProps> = ({
                     onChange={(e) =>
                       setStallAdvance(e.target.value === '' ? '' : Number(e.target.value))
                     }
-                    placeholder="15000"
+                    placeholder="Enter advance paid"
                     className="w-full px-3 py-2.5 bg-[#ffffff] border border-emerald-300 rounded-xl text-xs font-bold text-emerald-900 focus:outline-hidden focus:border-emerald-600"
                   />
                 </div>
