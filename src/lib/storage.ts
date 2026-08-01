@@ -232,10 +232,11 @@ create table if not exists public.stall_bookings (
   payment_mode text default 'UPI / QR Code',
   calculated_status text default 'Unpaid',
   notes text,
+  payment_logs jsonb default '[]'::jsonb,
   created_at timestamp with time zone default now()
 );
 
--- Enable Row Level Security (RLS) & Allow Public Read/Write for demo PWA
+-- Enable Row Level Security (RLS) & Allow Public Read/Write for PWA
 alter table public.events enable row level security;
 alter table public.stall_bookings enable row level security;
 

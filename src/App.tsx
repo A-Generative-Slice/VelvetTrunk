@@ -116,6 +116,7 @@ export default function App() {
           paymentMode: r.payment_mode,
           calculatedStatus: r.calculated_status,
           notes: r.notes,
+          paymentLogs: r.payment_logs || [],
           createdAt: r.created_at,
         }));
 
@@ -298,6 +299,7 @@ export default function App() {
           payment_mode: targetBk.paymentMode,
           calculated_status: targetBk.calculatedStatus,
           notes: targetBk.notes,
+          payment_logs: targetBk.paymentLogs || [],
         });
       } catch (err) {
         console.error('Failed to sync booking to Supabase:', err);
