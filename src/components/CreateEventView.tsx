@@ -11,7 +11,6 @@ import {
   Image as ImageIcon,
   Check,
   Building,
-  Sparkles,
 } from 'lucide-react';
 
 interface CreateEventViewProps {
@@ -27,16 +26,16 @@ export const CreateEventView: React.FC<CreateEventViewProps> = ({
 }) => {
   const [name, setName] = useState(initialEvent?.name || '');
   const [location, setLocation] = useState(initialEvent?.location || '');
-  const [startDate, setStartDate] = useState(initialEvent?.startDate || '2026-08-15');
-  const [endDate, setEndDate] = useState(initialEvent?.endDate || '2026-08-17');
-  const [timing, setTiming] = useState(initialEvent?.timing || '10:00 AM - 09:00 PM');
+  const [startDate, setStartDate] = useState(initialEvent?.startDate || '');
+  const [endDate, setEndDate] = useState(initialEvent?.endDate || '');
+  const [timing, setTiming] = useState(initialEvent?.timing || '');
   const [mapLocation, setMapLocation] = useState(initialEvent?.mapLocation || '');
 
-  // Two Boxes for Stall Limits: F Series & S Series
-  const [fSeriesLimit, setFSeriesLimit] = useState<number>(
+  // Stall Limits: F Series & S Series (supports empty string state for smooth backspacing)
+  const [fSeriesLimit, setFSeriesLimit] = useState<number | ''>(
     initialEvent?.fSeriesLimit ?? 100
   );
-  const [sSeriesLimit, setSSeriesLimit] = useState<number>(
+  const [sSeriesLimit, setSSeriesLimit] = useState<number | ''>(
     initialEvent?.sSeriesLimit ?? 20
   );
 
@@ -80,14 +79,14 @@ export const CreateEventView: React.FC<CreateEventViewProps> = ({
 
     onSave(
       {
-        name,
-        location,
+        name: name.trim(),
+        location: location.trim(),
         startDate,
         endDate,
-        timing,
-        mapLocation,
-        fSeriesLimit: Number(fSeriesLimit) || 100,
-        sSeriesLimit: Number(sSeriesLimit) || 20,
+        timing: timing.trim(),
+        mapLocation: mapLocation.trim(),
+        fSeriesLimit: fSeriesLimit === '' ? 100 : Number(fSeriesLimit) || 100,
+        sSeriesLimit: sSeriesLimit === '' ? 20 : Number(sSeriesLimit) || 20,
         layoutImageUrl: layoutImageUrl || DEFAULT_LAYOUT_IMAGE,
         bannerImageUrl: layoutImageUrl || DEFAULT_LAYOUT_IMAGE,
         isCompleted: initialEvent?.isCompleted || false,
@@ -97,7 +96,7 @@ export const CreateEventView: React.FC<CreateEventViewProps> = ({
   };
 
   return (
-    <div className="flex flex-col gap-6 pb-24 max-w-md mx-auto">
+    <div className="flex flex-col gap-6 pb-12 max-w-3xl mx-auto w-full">
       {/* Top Header Navigation */}
       <div className="flex items-center gap-3 pt-2">
         <button
@@ -126,10 +125,11 @@ export const CreateEventView: React.FC<CreateEventViewProps> = ({
       <form onSubmit={handleSubmit} className="flex flex-col gap-5">
         {/* 1. Event Name */}
         <div className="space-y-1.5">
-          <label className="text-xs font-bold uppercase tracking-wider text-[#491546] flex items-center gap-1.5">
+          <label htmlFor="event-name-input" className="text-xs font-bold uppercase tracking-wider text-[#491546] flex items-center gap-1.5">
             <Building className="w-3.5 h-3.5 text-[#904277]" /> Event Name *
           </label>
           <input
+            id="event-name-input"
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
@@ -140,11 +140,12 @@ export const CreateEventView: React.FC<CreateEventViewProps> = ({
         </div>
 
         {/* 2. Location */}
-          <div className="space-y-1.5">
-          <label className="text-xs font-bold uppercase tracking-wider text-[#491546] flex items-center gap-1.5">
+        <div className="space-y-1.5">
+          <label htmlFor="location-name-input" className="text-xs font-bold uppercase tracking-wider text-[#491546] flex items-center gap-1.5">
             <MapPin className="w-3.5 h-3.5 text-[#904277]" /> Location Name *
           </label>
           <input
+            id="location-name-input"
             type="text"
             value={location}
             onChange={(e) => setLocation(e.target.value)}
@@ -155,29 +156,29 @@ export const CreateEventView: React.FC<CreateEventViewProps> = ({
         </div>
 
         {/* 3. Dates & Timings */}
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="space-y-1.5">
-            <label className="text-xs font-bold uppercase tracking-wider text-[#491546] flex items-center gap-1">
+            <label htmlFor="start-date-input" className="text-xs font-bold uppercase tracking-wider text-[#491546] flex items-center gap-1">
               <Calendar className="w-3.5 h-3.5 text-[#904277]" /> Start Date
             </label>
             <input
+              id="start-date-input"
               type="date"
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
-              required
               className="w-full px-3 py-2.5 bg-[#ffffff] border border-[#d2c2cc] rounded-xl text-xs font-medium text-[#1e1a1d] focus:outline-hidden focus:border-[#491546] shadow-2xs"
             />
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-xs font-bold uppercase tracking-wider text-[#491546] flex items-center gap-1">
+            <label htmlFor="end-date-input" className="text-xs font-bold uppercase tracking-wider text-[#491546] flex items-center gap-1">
               <Calendar className="w-3.5 h-3.5 text-[#904277]" /> End Date
             </label>
             <input
+              id="end-date-input"
               type="date"
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
-              required
               className="w-full px-3 py-2.5 bg-[#ffffff] border border-[#d2c2cc] rounded-xl text-xs font-medium text-[#1e1a1d] focus:outline-hidden focus:border-[#491546] shadow-2xs"
             />
           </div>
@@ -185,10 +186,11 @@ export const CreateEventView: React.FC<CreateEventViewProps> = ({
 
         {/* Timing */}
         <div className="space-y-1.5">
-          <label className="text-xs font-bold uppercase tracking-wider text-[#491546] flex items-center gap-1.5">
+          <label htmlFor="timing-input" className="text-xs font-bold uppercase tracking-wider text-[#491546] flex items-center gap-1.5">
             <Clock className="w-3.5 h-3.5 text-[#904277]" /> Exhibition Timing
           </label>
           <input
+            id="timing-input"
             type="text"
             value={timing}
             onChange={(e) => setTiming(e.target.value)}
@@ -199,10 +201,11 @@ export const CreateEventView: React.FC<CreateEventViewProps> = ({
 
         {/* Map Location Link */}
         <div className="space-y-1.5">
-          <label className="text-xs font-bold uppercase tracking-wider text-[#491546] flex items-center gap-1.5">
+          <label htmlFor="map-location-input" className="text-xs font-bold uppercase tracking-wider text-[#491546] flex items-center gap-1.5">
             <MapPin className="w-3.5 h-3.5 text-[#904277]" /> Map Location (Google Maps Link)
           </label>
           <input
+            id="map-location-input"
             type="text"
             value={mapLocation}
             onChange={(e) => setMapLocation(e.target.value)}
@@ -211,65 +214,63 @@ export const CreateEventView: React.FC<CreateEventViewProps> = ({
           />
         </div>
 
-        {/* TWO BOXES FOR STALL LIMITS: F SERIES AND S SERIES */}
+        {/* CLEAN STALL CAPACITY LIMITS: F SERIES AND S SERIES (No Extra Subtext) */}
         <div className="space-y-2 pt-2">
           <label className="text-xs font-bold uppercase tracking-wider text-[#491546] flex items-center gap-1.5">
             <Layers className="w-3.5 h-3.5 text-[#904277]" /> Stall Capacity Limits
           </label>
           
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-4">
             {/* Box 1: F Series Box */}
-            <div className="p-4 rounded-2xl bg-[#ffffff] border-2 border-[#632c5e]/30 shadow-xs flex flex-col gap-2">
-              <div className="flex items-center justify-between">
-                <span className="px-2 py-0.5 rounded-md bg-[#632c5e] text-white text-[11px] font-extrabold uppercase">
-                  F SERIES
-                </span>
-                <span className="text-[10px] text-[#81737c] font-medium">Standard</span>
-              </div>
-              <p className="text-xs text-[#4f434c] leading-tight">
-                Front Pavilion Stall Limit
-              </p>
-              <div className="flex items-center gap-1.5 mt-1">
+            <div className="p-4 rounded-2xl bg-[#ffffff] border-2 border-[#632c5e]/30 shadow-xs flex flex-col gap-2.5 items-center text-center">
+              <span className="px-3 py-1 rounded-lg bg-[#632c5e] text-white text-xs font-extrabold uppercase tracking-wider">
+                F SERIES
+              </span>
+              <div className="w-full mt-1">
                 <input
                   type="number"
                   min="1"
                   max="500"
                   value={fSeriesLimit}
-                  onChange={(e) => setFSeriesLimit(Number(e.target.value))}
-                  className="w-full px-3 py-2 bg-[#faf1f5] border border-[#d2c2cc] rounded-xl text-center font-extrabold text-base text-[#491546] focus:outline-hidden focus:border-[#491546]"
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (val === '') {
+                      setFSeriesLimit('');
+                    } else {
+                      const parsed = parseInt(val, 10);
+                      setFSeriesLimit(isNaN(parsed) ? '' : parsed);
+                    }
+                  }}
+                  placeholder="100"
+                  className="w-full px-3 py-2.5 bg-[#faf1f5] border border-[#d2c2cc] rounded-xl text-center font-extrabold text-lg text-[#491546] focus:outline-hidden focus:border-[#491546]"
                 />
-                <span className="text-xs font-bold text-[#81737c]">Stalls</span>
               </div>
-              <p className="text-[10px] text-[#81737c] italic text-center">
-                Default: 100 stalls
-              </p>
             </div>
 
             {/* Box 2: S Series Box */}
-            <div className="p-4 rounded-2xl bg-[#ffffff] border-2 border-[#904277]/30 shadow-xs flex flex-col gap-2">
-              <div className="flex items-center justify-between">
-                <span className="px-2 py-0.5 rounded-md bg-[#fea0db] text-[#491546] text-[11px] font-extrabold uppercase">
-                  S SERIES
-                </span>
-                <span className="text-[10px] text-[#904277] font-medium">VIP Select</span>
-              </div>
-              <p className="text-xs text-[#4f434c] leading-tight">
-                Premium VIP Stall Limit
-              </p>
-              <div className="flex items-center gap-1.5 mt-1">
+            <div className="p-4 rounded-2xl bg-[#ffffff] border-2 border-[#904277]/30 shadow-xs flex flex-col gap-2.5 items-center text-center">
+              <span className="px-3 py-1 rounded-lg bg-[#fea0db] text-[#491546] text-xs font-extrabold uppercase tracking-wider">
+                S SERIES
+              </span>
+              <div className="w-full mt-1">
                 <input
                   type="number"
                   min="1"
                   max="200"
                   value={sSeriesLimit}
-                  onChange={(e) => setSSeriesLimit(Number(e.target.value))}
-                  className="w-full px-3 py-2 bg-[#faf1f5] border border-[#d2c2cc] rounded-xl text-center font-extrabold text-base text-[#491546] focus:outline-hidden focus:border-[#491546]"
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (val === '') {
+                      setSSeriesLimit('');
+                    } else {
+                      const parsed = parseInt(val, 10);
+                      setSSeriesLimit(isNaN(parsed) ? '' : parsed);
+                    }
+                  }}
+                  placeholder="20"
+                  className="w-full px-3 py-2.5 bg-[#faf1f5] border border-[#d2c2cc] rounded-xl text-center font-extrabold text-lg text-[#491546] focus:outline-hidden focus:border-[#491546]"
                 />
-                <span className="text-xs font-bold text-[#81737c]">Stalls</span>
               </div>
-              <p className="text-[10px] text-[#81737c] italic text-center">
-                Default: 20 stalls
-              </p>
             </div>
           </div>
         </div>
@@ -280,58 +281,43 @@ export const CreateEventView: React.FC<CreateEventViewProps> = ({
             <ImageIcon className="w-3.5 h-3.5 text-[#904277]" /> Upload Layout Plan (JPG Format)
           </label>
 
-          <div className="border-2 border-dashed border-[#d2c2cc] bg-[#ffffff] rounded-2xl p-4 text-center hover:border-[#491546] transition-colors flex flex-col items-center gap-2">
-            {layoutImageUrl ? (
-              <div className="w-full flex flex-col items-center gap-2">
-                <div className="w-full h-40 rounded-xl overflow-hidden bg-[#faf1f5] border border-[#e9e0e4] relative group">
-                  <img
-                    src={layoutImageUrl}
-                    alt="Layout Preview"
-                    className="w-full h-full object-contain"
-                  />
-                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-bold">
-                    Click below to replace image
-                  </div>
-                </div>
-                {imageFileName && (
-                  <span className="text-xs text-[#81737c] font-medium">
-                    Uploaded: {imageFileName}
-                  </span>
-                )}
-              </div>
-            ) : (
-              <div className="py-4 flex flex-col items-center gap-2">
-                <div className="w-12 h-12 rounded-full bg-[#faf1f5] text-[#491546] flex items-center justify-center">
-                  <Upload className="w-6 h-6" />
-                </div>
-                <p className="text-xs font-bold text-[#491546]">
-                  Click to select JPG / PNG layout plan
-                </p>
-                <p className="text-[11px] text-[#81737c]">
-                  Upload architectural layout JPG showing F and S stall zones
-                </p>
-              </div>
-            )}
+          <div className="p-4 rounded-2xl bg-[#ffffff] border border-[#d2c2cc] shadow-2xs space-y-3">
+            <div className="flex items-center gap-3">
+              <label className="px-4 py-2.5 bg-[#491546] hover:bg-[#632c5e] text-white text-xs font-bold rounded-xl cursor-pointer shadow-xs active:scale-95 transition-all flex items-center gap-1.5">
+                <Upload className="w-4 h-4" />
+                <span>Browse JPG File</span>
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/jpg"
+                  onChange={handleImageUpload}
+                  className="hidden"
+                />
+              </label>
+              <span className="text-xs text-[#81737c] font-medium truncate max-w-[200px]">
+                {imageFileName || 'No custom layout selected (Default SVG layout used)'}
+              </span>
+            </div>
 
-            <label className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-[#faf1f5] text-[#491546] text-xs font-bold rounded-xl border border-[#d2c2cc] hover:bg-[#e9e0e4] active:scale-95 transition-all">
-              <Upload className="w-3.5 h-3.5" />
-              <span>{layoutImageUrl ? 'Change Layout JPG' : 'Upload Layout Image'}</span>
-              <input
-                type="file"
-                accept="image/jpeg,image/png,image/jpg"
-                onChange={handleImageUpload}
-                className="hidden"
+            {/* Layout Image Preview */}
+            <div className="w-full h-40 bg-[#f4ecef] rounded-xl border border-[#e9e0e4] overflow-hidden relative flex items-center justify-center">
+              <img
+                src={layoutImageUrl}
+                alt="Layout Plan Preview"
+                className="w-full h-full object-contain"
               />
-            </label>
+              <div className="absolute top-2 right-2 px-2.5 py-1 bg-black/60 backdrop-blur-md rounded-lg text-white text-[10px] font-bold">
+                Preview Layout
+              </div>
+            </div>
           </div>
         </div>
 
         {/* Submit Button */}
         <button
           type="submit"
-          className="mt-4 w-full py-3.5 px-6 bg-gradient-to-r from-[#491546] to-[#632c5e] text-white font-bold text-sm rounded-xl shadow-md hover:shadow-lg active:scale-98 transition-all flex items-center justify-center gap-2"
+          className="w-full py-4 bg-gradient-to-r from-[#491546] to-[#632c5e] hover:from-[#632c5e] hover:to-[#904277] text-white font-extrabold text-base rounded-2xl shadow-lg shadow-[#491546]/20 active:scale-95 transition-all flex items-center justify-center gap-2 mt-4"
         >
-          <Check className="w-5 h-5" />
+          <Check className="w-5 h-5 text-[#fea0db] stroke-[3]" />
           <span>{initialEvent ? 'Save Event Changes' : 'Create & Launch Event'}</span>
         </button>
       </form>
