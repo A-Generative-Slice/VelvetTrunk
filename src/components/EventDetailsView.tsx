@@ -190,6 +190,7 @@ export const EventDetailsView: React.FC<EventDetailsViewProps> = ({
   const [isLayoutModalOpen, setIsLayoutModalOpen] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isExportingPdf, setIsExportingPdf] = useState(false);
+  const [exportSuccessMsg, setExportSuccessMsg] = useState('');
   const [copySuccessMsg, setCopySuccessMsg] = useState('');
 
   const handleExportPDF = async () => {
