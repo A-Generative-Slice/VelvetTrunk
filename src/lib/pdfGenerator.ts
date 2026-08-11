@@ -2,7 +2,67 @@ import { jsPDF } from 'jspdf';
 import { EventItem, VendorBooking } from '../types';
 import { calculateEventDashboardStats, formatDateRange } from './storage';
 
-export const generateEventSummaryPDF = (event: EventItem, bookings: VendorBooking[]) => {
+// Helper to convert image URL to base64 Data URL for jsPDF embedding
+export const loadImageDataUrl = (url: string): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    if (!url) return reject('No URL provided');
+    if (url.startsWith('data:image')) return resolve(url);
+
+    const img = new Image();
+    img.crossOrigin = 'Anonymous';
+    img.onload = () => {
+      try {
+        const canvas = document.createElement('canvas');
+        canvas.width = img.naturalWidth || img.width;
+        canvas.height = img.naturalHeight || img.height;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(img, 0, 0);
+          resolve(canvas.toDataURL('image/jpeg', 0.9));
+        } else {
+          reject('Canvas context failed');
+        }
+      } catch (err) {
+        reject(err);
+      }
+    };
+    img.onerror = (err) => reject(err);
+    img.src = url;
+  });
+};
+
+// 1-Click Formatted Text Generator for WhatsApp / Messages
+export const formatStallAvailabilityText = (
+  event: EventItem,
+  bookings: VendorBooking[]
+): string => {
+  const stats = calculateEventDashboardStats(event, bookings);
+
+  return `✨ THE VELVET TRUNK - EXHIBITION AVAILABILITY UPDATE ✨
+
+📌 Event: ${event.name}
+📍 Location: ${event.location}
+📅 Dates: ${formatDateRange(event.startDate, event.endDate)}${
+    event.timing ? ` (${event.timing})` : ''
+  }
+
+📊 STALL AVAILABILITY STATUS:
+• Total Exhibition Capacity: ${stats.totalStalls} Stalls
+• Stalls Booked: ${stats.stallsBooked} Stalls
+🟢 REMAINING AVAILABLE STALLS: ${stats.stallsAvailable} STALLS
+
+🏷️ SERIES BREAKDOWN:
+• F-Series (Front Pavilion): ${stats.fLimit - stats.fBooked} Available (${stats.fBooked} / ${stats.fLimit} Booked)
+• S-Series (VIP Select): ${stats.sLimit - stats.sBooked} Available (${stats.sBooked} / ${stats.sLimit} Booked)
+
+📞 For Stall Bookings & Layout Inquiries, contact the event management team!`;
+};
+
+// Generate Comprehensive PDF Report with Embedded Blueprint Floor Plan
+export const generateEventSummaryPDF = async (
+  event: EventItem,
+  bookings: VendorBooking[]
+) => {
   const doc = new jsPDF({
     orientation: 'portrait',
     unit: 'mm',
@@ -29,14 +89,14 @@ export const generateEventSummaryPDF = (event: EventItem, bookings: VendorBookin
 
   doc.setFontSize(8);
   doc.setFont('helvetica', 'normal');
-  doc.text('THE VELVET TRUNK - EXHIBITION & BOOKINGS SUMMARY REPORT', 14, 23);
+  doc.text('THE VELVET TRUNK - EXHIBITION SUMMARY & STALL BOOKINGS REPORT', 14, 23);
   doc.text(
     `Date: ${new Date().toLocaleDateString('en-IN', {
       day: 'numeric',
       month: 'short',
       year: 'numeric',
     })}`,
-    150,
+    145,
     23
   );
 
@@ -55,7 +115,13 @@ export const generateEventSummaryPDF = (event: EventItem, bookings: VendorBookin
   doc.setTextColor(darkTextColor[0], darkTextColor[1], darkTextColor[2]);
   doc.setFont('helvetica', 'normal');
   doc.text(event.location, 48, y + 7);
-  doc.text(`${formatDateRange(event.startDate, event.endDate)}${event.timing ? ` (${event.timing})` : ''}`, 48, y + 15);
+  doc.text(
+    `${formatDateRange(event.startDate, event.endDate)}${
+      event.timing ? ` (${event.timing})` : ''
+    }`,
+    48,
+    y + 15
+  );
 
   y += 28;
 
@@ -71,10 +137,19 @@ export const generateEventSummaryPDF = (event: EventItem, bookings: VendorBookin
   const cardWidth = 43;
   const cardGap = 3;
   const cards = [
-    { title: 'Total Stalls', val: `${stats.stallsBooked} / ${stats.totalStalls}` },
-    { title: 'Total Rent Value', val: `Rs. ${stats.totalValue.toLocaleString('en-IN')}` },
-    { title: 'Total Collected', val: `Rs. ${stats.totalCollected.toLocaleString('en-IN')}` },
-    { title: 'Pending Rent', val: `Rs. ${stats.totalPending.toLocaleString('en-IN')}` },
+    {
+      title: 'Total Occupancy',
+      val: `${stats.stallsBooked} / ${stats.totalStalls}`,
+    },
+    { title: 'Available Stalls', val: `${stats.stallsAvailable} Remaining` },
+    {
+      title: 'Total Collected',
+      val: `Rs. ${stats.totalCollected.toLocaleString('en-IN')}`,
+    },
+    {
+      title: 'Pending Balance',
+      val: `Rs. ${stats.totalPending.toLocaleString('en-IN')}`,
+    },
   ];
 
   cards.forEach((card, idx) => {
@@ -87,7 +162,7 @@ export const generateEventSummaryPDF = (event: EventItem, bookings: VendorBookin
     doc.setFont('helvetica', 'bold');
     doc.text(card.title.toUpperCase(), x + 3.5, y + 5);
 
-    doc.setFontSize(9);
+    doc.setFontSize(8.5);
     doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
     doc.text(card.val, x + 3.5, y + 12);
   });
@@ -99,7 +174,7 @@ export const generateEventSummaryPDF = (event: EventItem, bookings: VendorBookin
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(secondaryColor[0], secondaryColor[1], secondaryColor[2]);
   doc.text(
-    `Collection Status:  Paid: ${stats.paidCount} vendors  |  Partial (Advance): ${stats.partialCount} vendors  |  Unpaid: ${stats.unpaidCount} vendors`,
+    `Collection Status:  Paid: ${stats.paidCount} vendors  |  Partial: ${stats.partialCount} vendors  |  Unpaid: ${stats.unpaidCount} vendors`,
     14,
     y
   );
@@ -110,7 +185,11 @@ export const generateEventSummaryPDF = (event: EventItem, bookings: VendorBookin
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(10);
   doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-  doc.text(`VENDOR BOOKINGS BREAKDOWN (${eventBookings.length} TOTAL)`, 14, y);
+  doc.text(
+    `VENDOR BOOKINGS BREAKDOWN (${eventBookings.length} BOOKED)`,
+    14,
+    y
+  );
 
   y += 4;
 
@@ -137,15 +216,17 @@ export const generateEventSummaryPDF = (event: EventItem, bookings: VendorBookin
 
   if (eventBookings.length === 0) {
     doc.setTextColor(120, 120, 120);
-    doc.text('No vendor stall bookings recorded for this exhibition yet.', 16, y + 6);
+    doc.text(
+      'No vendor stall bookings recorded for this exhibition yet.',
+      16,
+      y + 6
+    );
     y += 10;
   } else {
     eventBookings.forEach((b, index) => {
-      // Handle page overflow
       if (y > 270) {
         doc.addPage();
         y = 15;
-        // Draw header on new page
         doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
         doc.rect(14, y, 182, 8, 'F');
         doc.setTextColor(255, 255, 255);
@@ -160,7 +241,6 @@ export const generateEventSummaryPDF = (event: EventItem, bookings: VendorBookin
         doc.setFont('helvetica', 'normal');
       }
 
-      // Alternating row background
       if (index % 2 === 0) {
         doc.setFillColor(252, 247, 250);
         doc.rect(14, y, 182, 7, 'F');
@@ -172,14 +252,16 @@ export const generateEventSummaryPDF = (event: EventItem, bookings: VendorBookin
 
       doc.setFont('helvetica', 'normal');
       const displayName = `${b.exhibitorName} (${b.stallName})`;
-      const truncatedName = displayName.length > 32 ? displayName.substring(0, 30) + '..' : displayName;
+      const truncatedName =
+        displayName.length > 32
+          ? displayName.substring(0, 30) + '..'
+          : displayName;
       doc.text(truncatedName, 35, y + 5);
 
       doc.text(b.mobileNumber, 95, y + 5);
       doc.text(b.stallRent.toLocaleString('en-IN'), 125, y + 5);
       doc.text(b.stallAdvance.toLocaleString('en-IN'), 148, y + 5);
 
-      // Status styling
       if (b.calculatedStatus === 'Paid') {
         doc.setTextColor(16, 122, 70);
       } else if (b.calculatedStatus === 'Partial') {
@@ -192,6 +274,58 @@ export const generateEventSummaryPDF = (event: EventItem, bookings: VendorBookin
 
       y += 7;
     });
+  }
+
+  // Check if Floor Plan Layout Image exists and embed as blueprint page
+  if (event.layoutImageUrl) {
+    try {
+      const imageDataUrl = await loadImageDataUrl(event.layoutImageUrl);
+      doc.addPage();
+      let pdfPageY = 12;
+
+      // Blueprint Page Header Banner
+      doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+      doc.rect(0, 0, 210, 26, 'F');
+
+      doc.setTextColor(255, 255, 255);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(13);
+      doc.text(
+        `${event.name.toUpperCase()} - FLOOR PLAN BLUEPRINT`,
+        14,
+        14
+      );
+
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'normal');
+      doc.text(
+        'EXHIBITION STALL LAYOUT MAP & SEATING ARRANGEMENT',
+        14,
+        21
+      );
+
+      pdfPageY = 32;
+
+      // Status Badge Banner
+      doc.setFillColor(lightBgColor[0], lightBgColor[1], lightBgColor[2]);
+      doc.roundedRect(14, pdfPageY, 182, 14, 2, 2, 'F');
+
+      doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(8.5);
+      doc.text(
+        `Total Capacity: ${stats.totalStalls} Stalls  |  Booked: ${stats.stallsBooked}  |  AVAILABLE NOW: ${stats.stallsAvailable} STALLS`,
+        18,
+        pdfPageY + 9
+      );
+
+      pdfPageY += 18;
+
+      // Embed Blueprint Floor Plan Image onto Page
+      doc.addImage(imageDataUrl, 'JPEG', 14, pdfPageY, 182, 220);
+    } catch (err) {
+      console.warn('Could not embed floor plan blueprint image in PDF:', err);
+    }
   }
 
   // Footer divider line
@@ -209,12 +343,12 @@ export const generateEventSummaryPDF = (event: EventItem, bookings: VendorBookin
   doc.setFontSize(7.5);
   doc.setFont('helvetica', 'italic');
   doc.text(
-    `The Velvet Trunk Event Management System  |  Confidential Financial Summary  |  Page ${doc.getNumberOfPages()}`,
+    `The Velvet Trunk Event Management  |  Exhibition Blueprint Report  |  Page ${doc.getNumberOfPages()}`,
     14,
     y
   );
 
   // Save File
-  const filename = `${event.name.replace(/[^a-zA-Z0-9]/g, '_')}_Summary.pdf`;
+  const filename = `${event.name.replace(/[^a-zA-Z0-9]/g, '_')}_Blueprint_Report.pdf`;
   doc.save(filename);
 };

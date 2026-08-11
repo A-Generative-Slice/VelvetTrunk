@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { EventItem, VendorBooking } from '../types';
 import { calculateEventDashboardStats, formatDateRange } from '../lib/storage';
-import { generateEventSummaryPDF } from '../lib/pdfGenerator';
+import { generateEventSummaryPDF, formatStallAvailabilityText } from '../lib/pdfGenerator';
 import {
   ArrowLeft,
   Calendar,
@@ -24,6 +24,7 @@ import {
   FileText,
   Download,
   Printer,
+  Copy,
 } from 'lucide-react';
 
 interface EventDetailsViewProps {
@@ -189,21 +190,31 @@ export const EventDetailsView: React.FC<EventDetailsViewProps> = ({
   const [isLayoutModalOpen, setIsLayoutModalOpen] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isExportingPdf, setIsExportingPdf] = useState(false);
-  const [exportSuccessMsg, setExportSuccessMsg] = useState('');
+  const [copySuccessMsg, setCopySuccessMsg] = useState('');
 
-  const stats = calculateEventDashboardStats(event, bookings);
-
-  const handleExportPDF = () => {
+  const handleExportPDF = async () => {
     try {
       setIsExportingPdf(true);
-      generateEventSummaryPDF(event, bookings);
-      setExportSuccessMsg('PDF Summary generated and downloaded successfully!');
+      await generateEventSummaryPDF(event, bookings);
+      setExportSuccessMsg('PDF Blueprint Summary generated and downloaded successfully!');
       setTimeout(() => setExportSuccessMsg(''), 4000);
     } catch (err) {
       console.error('Failed to generate PDF:', err);
-      alert('Could not generate PDF summary. Please try again.');
+      alert('Could not generate PDF report. Please try again.');
     } finally {
       setIsExportingPdf(false);
+    }
+  };
+
+  const handleCopyAvailabilityInfo = () => {
+    try {
+      const textToCopy = formatStallAvailabilityText(event, bookings);
+      navigator.clipboard.writeText(textToCopy);
+      setCopySuccessMsg('Stall Availability Info copied to clipboard! Ready to paste into WhatsApp/Messages.');
+      setTimeout(() => setCopySuccessMsg(''), 4000);
+    } catch (err) {
+      console.error('Failed to copy availability text:', err);
+      alert('Could not copy to clipboard. Please copy manually.');
     }
   };
 
@@ -220,13 +231,21 @@ export const EventDetailsView: React.FC<EventDetailsViewProps> = ({
 
         <div className="flex items-center gap-1.5">
           <button
+            onClick={handleCopyAvailabilityInfo}
+            className="p-2.5 rounded-xl bg-emerald-600 text-white hover:bg-emerald-700 active:scale-95 transition-all flex items-center gap-1.5 text-xs font-extrabold shadow-xs"
+            title="Copy Remaining Seats Info to Clipboard"
+          >
+            <Copy className="w-4 h-4 text-emerald-200" />
+            <span className="hidden sm:inline">Copy Info</span>
+          </button>
+          <button
             onClick={handleExportPDF}
             disabled={isExportingPdf}
             className="p-2.5 rounded-xl bg-[#491546] text-white hover:bg-[#632c5e] active:scale-95 transition-all flex items-center gap-1.5 text-xs font-extrabold shadow-xs"
-            title="Export Simplified PDF Summary"
+            title="Export Simplified Blueprint & Financial PDF"
           >
             <Download className="w-4 h-4 text-[#fea0db]" />
-            <span>{isExportingPdf ? 'Exporting...' : 'Export PDF'}</span>
+            <span>{isExportingPdf ? 'Generating...' : 'Export PDF'}</span>
           </button>
           <button
             onClick={onEditEvent}
@@ -245,9 +264,16 @@ export const EventDetailsView: React.FC<EventDetailsViewProps> = ({
         </div>
       </div>
 
-      {exportSuccessMsg && (
+      {copySuccessMsg && (
         <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold rounded-xl flex items-center gap-2 animate-fadeIn">
           <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0" />
+          <span>{copySuccessMsg}</span>
+        </div>
+      )}
+
+      {exportSuccessMsg && (
+        <div className="p-3 bg-purple-50 border border-purple-200 text-purple-900 text-xs font-bold rounded-xl flex items-center gap-2 animate-fadeIn">
+          <CheckCircle className="w-4 h-4 text-purple-600 shrink-0" />
           <span>{exportSuccessMsg}</span>
         </div>
       )}
@@ -307,19 +333,31 @@ export const EventDetailsView: React.FC<EventDetailsViewProps> = ({
           </a>
         )}
 
-        {/* Quick PDF Summary Action Button */}
-        <button
-          onClick={handleExportPDF}
-          disabled={isExportingPdf}
-          className="w-full mt-2 py-3 px-4 rounded-xl bg-gradient-to-r from-[#491546] to-[#632c5e] text-white font-extrabold text-xs flex items-center justify-center gap-2 shadow-xs hover:shadow-md active:scale-98 transition-all"
-        >
-          <FileText className="w-4 h-4 text-[#fea0db]" />
-          <span>
-            {isExportingPdf
-              ? 'Generating PDF Summary...'
-              : 'Export PDF Summary'}
-          </span>
-        </button>
+        {/* Dual 1-Click Action Buttons: Copy Availability Text & Generate Blueprint PDF */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-2">
+          {/* 1-Click Copy Remaining Seats Info Button */}
+          <button
+            onClick={handleCopyAvailabilityInfo}
+            className="w-full py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs flex items-center justify-center gap-2 shadow-xs hover:shadow-md active:scale-98 transition-all"
+          >
+            <Copy className="w-4 h-4 text-emerald-200" />
+            <span>Copy Availability Info (WhatsApp)</span>
+          </button>
+
+          {/* 1-Click Generate Blueprint & Availability PDF Button */}
+          <button
+            onClick={handleExportPDF}
+            disabled={isExportingPdf}
+            className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-[#491546] to-[#632c5e] text-white font-extrabold text-xs flex items-center justify-center gap-2 shadow-xs hover:shadow-md active:scale-98 transition-all"
+          >
+            <FileText className="w-4 h-4 text-[#fea0db]" />
+            <span>
+              {isExportingPdf
+                ? 'Generating Blueprint PDF...'
+                : 'Export Blueprint & Availability PDF'}
+            </span>
+          </button>
+        </div>
       </div>
 
       {/* TWO BOXES AT TOP: F SERIES AND S SERIES */}
