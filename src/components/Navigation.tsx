@@ -155,9 +155,13 @@ export const Navigation: React.FC<NavigationProps> = ({
 
           <button
             onClick={onOpenSupportModal}
-            className="flex flex-col items-center justify-center py-1 px-3 rounded-2xl transition-all text-[#81737c] hover:text-[#491546]"
+            className={`flex flex-col items-center justify-center py-1 px-3 rounded-2xl transition-all ${
+              currentTab === 'support'
+                ? 'text-[#491546] font-bold scale-105'
+                : 'text-[#81737c] hover:text-[#491546]'
+            }`}
           >
-            <Headphones className="w-5 h-5 stroke-2 text-[#904277]" />
+            <Headphones className={`w-5 h-5 ${currentTab === 'support' ? 'stroke-[2.5] text-[#491546]' : 'stroke-2 text-[#904277]'}`} />
             <span className="text-[11px] font-medium tracking-wider uppercase mt-0.5">Support</span>
           </button>
         </div>
