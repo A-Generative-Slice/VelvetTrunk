@@ -193,6 +193,8 @@ export const EventDetailsView: React.FC<EventDetailsViewProps> = ({
   const [exportSuccessMsg, setExportSuccessMsg] = useState('');
   const [copySuccessMsg, setCopySuccessMsg] = useState('');
 
+  const stats = calculateEventDashboardStats(event, bookings);
+
   const handleExportPDF = async () => {
     try {
       setIsExportingPdf(true);
