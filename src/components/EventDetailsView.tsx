@@ -1,7 +1,10 @@
 import React, { useState, useRef } from 'react';
 import { EventItem, VendorBooking } from '../types';
-import { calculateEventDashboardStats, formatDateRange } from '../lib/storage';
-import { generateEventSummaryPDF, formatStallAvailabilityText } from '../lib/pdfGenerator';
+import {
+  generateVendorBlueprintPDF,
+  generateOwnerReportPDF,
+  formatStallAvailabilityText,
+} from '../lib/pdfGenerator';
 import {
   ArrowLeft,
   Calendar,
@@ -189,23 +192,38 @@ export const EventDetailsView: React.FC<EventDetailsViewProps> = ({
 }) => {
   const [isLayoutModalOpen, setIsLayoutModalOpen] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [isExportingPdf, setIsExportingPdf] = useState(false);
+  const [isExportingVendorPdf, setIsExportingVendorPdf] = useState(false);
+  const [isExportingOwnerPdf, setIsExportingOwnerPdf] = useState(false);
   const [exportSuccessMsg, setExportSuccessMsg] = useState('');
   const [copySuccessMsg, setCopySuccessMsg] = useState('');
 
   const stats = calculateEventDashboardStats(event, bookings);
 
-  const handleExportPDF = async () => {
+  const handleExportVendorPDF = async () => {
     try {
-      setIsExportingPdf(true);
-      await generateEventSummaryPDF(event, bookings);
-      setExportSuccessMsg('PDF Blueprint Summary generated and downloaded successfully!');
+      setIsExportingVendorPdf(true);
+      await generateVendorBlueprintPDF(event, bookings);
+      setExportSuccessMsg('Vendor Blueprint & Availability PDF generated successfully! (Zero Financial Data)');
       setTimeout(() => setExportSuccessMsg(''), 4000);
     } catch (err) {
-      console.error('Failed to generate PDF:', err);
-      alert('Could not generate PDF report. Please try again.');
+      console.error('Failed to generate Vendor PDF:', err);
+      alert('Could not generate Vendor PDF. Please try again.');
     } finally {
-      setIsExportingPdf(false);
+      setIsExportingVendorPdf(false);
+    }
+  };
+
+  const handleExportOwnerPDF = async () => {
+    try {
+      setIsExportingOwnerPdf(true);
+      await generateOwnerReportPDF(event, bookings);
+      setExportSuccessMsg('Owner Executive & Financial Ledger PDF generated successfully!');
+      setTimeout(() => setExportSuccessMsg(''), 4000);
+    } catch (err) {
+      console.error('Failed to generate Owner PDF:', err);
+      alert('Could not generate Owner PDF. Please try again.');
+    } finally {
+      setIsExportingOwnerPdf(false);
     }
   };
 
@@ -242,13 +260,13 @@ export const EventDetailsView: React.FC<EventDetailsViewProps> = ({
             <span className="hidden sm:inline">Copy Info</span>
           </button>
           <button
-            onClick={handleExportPDF}
-            disabled={isExportingPdf}
-            className="p-2.5 rounded-xl bg-[#491546] text-white hover:bg-[#632c5e] active:scale-95 transition-all flex items-center gap-1.5 text-xs font-extrabold shadow-xs"
-            title="Export Simplified Blueprint & Financial PDF"
+            onClick={handleExportVendorPDF}
+            disabled={isExportingVendorPdf}
+            className="p-2.5 rounded-xl bg-indigo-700 text-white hover:bg-indigo-800 active:scale-95 transition-all flex items-center gap-1.5 text-xs font-extrabold shadow-xs"
+            title="Export Vendor Blueprint PDF (No financial figures)"
           >
-            <Download className="w-4 h-4 text-[#fea0db]" />
-            <span>{isExportingPdf ? 'Generating...' : 'Export PDF'}</span>
+            <FileText className="w-4 h-4 text-indigo-200" />
+            <span>{isExportingVendorPdf ? 'Exporting...' : 'Vendor PDF'}</span>
           </button>
           <button
             onClick={onEditEvent}
@@ -336,28 +354,45 @@ export const EventDetailsView: React.FC<EventDetailsViewProps> = ({
           </a>
         )}
 
-        {/* Dual 1-Click Action Buttons: Copy Availability Text & Generate Blueprint PDF */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-2">
+        {/* 1-Click Action Buttons: Copy Availability Text, Vendor Blueprint PDF, Owner Executive PDF */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-2">
           {/* 1-Click Copy Remaining Seats Info Button */}
           <button
             onClick={handleCopyAvailabilityInfo}
-            className="w-full py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs flex items-center justify-center gap-2 shadow-xs hover:shadow-md active:scale-98 transition-all"
+            className="w-full py-3 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs flex items-center justify-center gap-2 shadow-xs hover:shadow-md active:scale-98 transition-all"
+            title="Copy formatted text to send on WhatsApp"
           >
             <Copy className="w-4 h-4 text-emerald-200" />
-            <span>Copy Availability Info (WhatsApp)</span>
+            <span>Copy Availability (WhatsApp)</span>
           </button>
 
-          {/* 1-Click Generate Blueprint & Availability PDF Button */}
+          {/* 1-Click Vendor Blueprint & Availability PDF (NO Financials) */}
           <button
-            onClick={handleExportPDF}
-            disabled={isExportingPdf}
-            className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-[#491546] to-[#632c5e] text-white font-extrabold text-xs flex items-center justify-center gap-2 shadow-xs hover:shadow-md active:scale-98 transition-all"
+            onClick={handleExportVendorPDF}
+            disabled={isExportingVendorPdf}
+            className="w-full py-3 px-3 rounded-xl bg-indigo-700 hover:bg-indigo-800 text-white font-extrabold text-xs flex items-center justify-center gap-2 shadow-xs hover:shadow-md active:scale-98 transition-all"
+            title="Export clean Floor Plan & Stall Availability PDF for Vendors (No financial amounts)"
           >
-            <FileText className="w-4 h-4 text-[#fea0db]" />
+            <FileText className="w-4 h-4 text-indigo-200" />
             <span>
-              {isExportingPdf
-                ? 'Generating Blueprint PDF...'
-                : 'Export Blueprint & Availability PDF'}
+              {isExportingVendorPdf
+                ? 'Generating...'
+                : 'Vendor Blueprint PDF'}
+            </span>
+          </button>
+
+          {/* 1-Click Owner Executive & Financial Ledger PDF */}
+          <button
+            onClick={handleExportOwnerPDF}
+            disabled={isExportingOwnerPdf}
+            className="w-full py-3 px-3 rounded-xl bg-gradient-to-r from-[#491546] to-[#632c5e] text-white font-extrabold text-xs flex items-center justify-center gap-2 shadow-xs hover:shadow-md active:scale-98 transition-all"
+            title="Export full Financial Ledger & Revenue Overview for Event Owner"
+          >
+            <Download className="w-4 h-4 text-[#fea0db]" />
+            <span>
+              {isExportingOwnerPdf
+                ? 'Generating...'
+                : 'Owner Executive PDF'}
             </span>
           </button>
         </div>
