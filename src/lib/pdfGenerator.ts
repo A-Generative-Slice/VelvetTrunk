@@ -31,14 +31,64 @@ export const loadImageDataUrl = (url: string): Promise<string> => {
   });
 };
 
-// 1-Click Formatted Text Generator for WhatsApp / Messages
+// 1-Click Formatted Text Generator for WhatsApp / Messages with Exact Stall Numbers
 export const formatStallAvailabilityText = (
   event: EventItem,
   bookings: VendorBooking[]
 ): string => {
   const stats = calculateEventDashboardStats(event, bookings);
+  const eventBookings = bookings.filter((b) => b.eventId === event.id);
 
-  return `✨ THE VELVET TRUNK - EXHIBITION AVAILABILITY UPDATE ✨
+  // F-Series breakdown
+  const fBookings = eventBookings.filter((b) => b.series === 'F');
+  const fBookedMap = new Map<string, string>(); // stallNumber -> exhibitor/stall name
+  fBookings.forEach((b) => {
+    const key = b.stallNumber.trim().toUpperCase();
+    fBookedMap.set(key, `${b.exhibitorName}${b.stallName ? ` - ${b.stallName}` : ''}`);
+  });
+
+  const fVacant: string[] = [];
+  const fBooked: string[] = [];
+  for (let i = 1; i <= event.fSeriesLimit; i++) {
+    const numPadded = `F-${String(i).padStart(2, '0')}`;
+    const numUnpadded = `F-${i}`;
+    if (fBookedMap.has(numPadded)) {
+      fBooked.push(`${numPadded} (${fBookedMap.get(numPadded)})`);
+    } else if (fBookedMap.has(numUnpadded)) {
+      fBooked.push(`${numUnpadded} (${fBookedMap.get(numUnpadded)})`);
+    } else {
+      fVacant.push(numPadded);
+    }
+  }
+
+  // S-Series breakdown
+  const sBookings = eventBookings.filter((b) => b.series === 'S');
+  const sBookedMap = new Map<string, string>(); // stallNumber -> exhibitor/stall name
+  sBookings.forEach((b) => {
+    const key = b.stallNumber.trim().toUpperCase();
+    sBookedMap.set(key, `${b.exhibitorName}${b.stallName ? ` - ${b.stallName}` : ''}`);
+  });
+
+  const sVacant: string[] = [];
+  const sBooked: string[] = [];
+  for (let i = 1; i <= event.sSeriesLimit; i++) {
+    const numPadded = `S-${String(i).padStart(2, '0')}`;
+    const numUnpadded = `S-${i}`;
+    if (sBookedMap.has(numPadded)) {
+      sBooked.push(`${numPadded} (${sBookedMap.get(numPadded)})`);
+    } else if (sBookedMap.has(numUnpadded)) {
+      sBooked.push(`${numUnpadded} (${sBookedMap.get(numUnpadded)})`);
+    } else {
+      sVacant.push(numPadded);
+    }
+  }
+
+  const formatList = (stalls: string[]) => {
+    if (stalls.length === 0) return 'None';
+    return stalls.join(', ');
+  };
+
+  return `✨ THE VELVET TRUNK - EXHIBITION STALL AVAILABILITY UPDATE ✨
 
 📌 Event: ${event.name}
 📍 Location: ${event.location}
@@ -46,16 +96,28 @@ export const formatStallAvailabilityText = (
     event.timing ? ` (${event.timing})` : ''
   }
 
-📊 STALL AVAILABILITY STATUS:
+📊 TOTAL OCCUPANCY SUMMARY:
 • Total Exhibition Capacity: ${stats.totalStalls} Stalls
 • Stalls Booked: ${stats.stallsBooked} Stalls
 🟢 REMAINING AVAILABLE STALLS: ${stats.stallsAvailable} STALLS
 
-🏷️ SERIES BREAKDOWN:
-• F-Series (Front Pavilion): ${stats.fLimit - stats.fBooked} Available (${stats.fBooked} / ${stats.fLimit} Booked)
-• S-Series (VIP Select): ${stats.sLimit - stats.sBooked} Available (${stats.sBooked} / ${stats.sLimit} Booked)
+----------------------------------------
+🏷️ F-SERIES (FRONT PAVILION):
+• Capacity: ${event.fSeriesLimit} Stalls (${fBooked.length} Booked | ${fVacant.length} Vacant)
+🟢 VACANT STALLS AVAILABLE:
+${formatList(fVacant)}
+${fBooked.length > 0 ? `\n🔴 ALREADY BOOKED:\n${formatList(fBooked)}` : ''}
 
-📞 For Stall Bookings & Layout Inquiries, contact the event management team!`;
+----------------------------------------
+🏷️ S-SERIES (VIP SELECT):
+• Capacity: ${event.sSeriesLimit} Stalls (${sBooked.length} Booked | ${sVacant.length} Vacant)
+🟢 VACANT STALLS AVAILABLE:
+${formatList(sVacant)}
+${sBooked.length > 0 ? `\n🔴 ALREADY BOOKED:\n${formatList(sBooked)}` : ''}
+
+----------------------------------------
+🗺️ Match these stall numbers directly with the attached Layout Blueprint Floor Plan!
+📞 For Stall Bookings & Reservations, contact Velvet Trunk Event Team!`;
 };
 
 // Generate Comprehensive PDF Report with Embedded Blueprint Floor Plan
