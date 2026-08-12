@@ -253,23 +253,6 @@ export const EventDetailsView: React.FC<EventDetailsViewProps> = ({
 
         <div className="flex items-center gap-1.5">
           <button
-            onClick={handleCopyAvailabilityInfo}
-            className="p-2.5 rounded-xl bg-emerald-600 text-white hover:bg-emerald-700 active:scale-95 transition-all flex items-center gap-1.5 text-xs font-extrabold shadow-xs"
-            title="Copy Remaining Seats Info to Clipboard"
-          >
-            <Copy className="w-4 h-4 text-emerald-200" />
-            <span className="hidden sm:inline">Copy Info</span>
-          </button>
-          <button
-            onClick={handleExportVendorPDF}
-            disabled={isExportingVendorPdf}
-            className="p-2.5 rounded-xl bg-indigo-700 text-white hover:bg-indigo-800 active:scale-95 transition-all flex items-center gap-1.5 text-xs font-extrabold shadow-xs"
-            title="Export Vendor Blueprint PDF (No financial figures)"
-          >
-            <FileText className="w-4 h-4 text-indigo-200" />
-            <span>{isExportingVendorPdf ? 'Exporting...' : 'Vendor PDF'}</span>
-          </button>
-          <button
             onClick={onEditEvent}
             className="p-2.5 rounded-xl bg-[#ffffff] border border-[#d2c2cc] text-[#491546] hover:bg-[#faf1f5] active:scale-95 transition-all flex items-center gap-1.5 text-xs font-bold"
             title="Edit Event Details"
