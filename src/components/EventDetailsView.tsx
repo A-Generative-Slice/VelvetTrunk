@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { EventItem, VendorBooking } from '../types';
+import { calculateEventDashboardStats, formatDateRange } from '../lib/storage';
 import {
   generateVendorBlueprintPDF,
   generateOwnerReportPDF,
